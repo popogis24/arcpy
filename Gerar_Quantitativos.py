@@ -25,19 +25,9 @@ for fc in featureclasses:
         ponto
     else:
         pass
-
-    # Gerar imagem para o layer
-    mxd = arcpy.mapping.MapDocument("CURRENT")
-    df = arcpy.mapping.ListDataFrames(mxd)[0]
-    layer = arcpy.mapping.Layer(clip)
-    arcpy.mapping.AddLayer(df, layer)
-    arcpy.RefreshActiveView()
-    arcpy.mapping.ExportToJPEG(mxd, f'{pasta_output}/{str(fc)}.jpg', df_export_width=800, df_export_height=800)
-    arcpy.mapping.RemoveLayer(df, layer)
-
     
     #agora pego o resultado do clip e transformo em tabela
-    nome_xls = str(fc)[:30]
+    nome_xls = str(fc)
     arcpy.conversion.TableToExcel(clip, nome_xls, "", "")
     
 
