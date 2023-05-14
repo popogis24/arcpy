@@ -124,6 +124,20 @@ def usoestagio(estagio):
     else:
         return ''
     '''
+
+codeblock_autoincrement = '''
+rec=0
+def autoIncrement():
+ global rec
+ pStart = 1 #muda para nao iniciar do num 1
+ pInterval = 1 #mude este numero para mudar o intervalo de seq
+ if (rec == 0): 
+  rec = pStart 
+ else: 
+  rec = rec + pInterval 
+ return rec
+ '''
+
 #multipart to singlepart
 arcpy.management.MultipartToSinglepart(uso_base, 'exploded_uso_base')
 
@@ -157,3 +171,17 @@ arcpy.management.CalculateField(shape_sigam, 'IdProcDet', fr'{id_projeto}', "", 
 
 #DATAATUALIZ
 arcpy.management.CalculateField(shape_sigam, 'datAtualiz', "10/10/2001", "", "", "", "")
+
+#ADICIONA UMA COLUNA 
+arcpy.management.AddField(shape_sigam, 'div', 'FLOAT', "", "", "", "", "", "", "")
+
+#calcula essa coluna COM A CONTAGEM AUTOINCREMENTADA
+arcpy.management.CalculateField(shape_sigam, 'cont', 'autoIncrement()', "", codeblock_autoincrement, "", "")
+
+#ADICIONA UMA COLUNA COM AS DIVISOES
+arcpy.management.AddField(shape_sigam, 'div', 'FLOAT', "", "", "", "", "", "", "")
+
+
+
+
+
