@@ -26,7 +26,7 @@ import arcpy
             ponto
         else:
             pass
-        
+      
         #agora pego o resultado do clip e transformo em tabela
         nome_xls = fr'{pasta_excel}/quantitativo_{str(fc)}'
         trans_tabela = arcpy.conversion.TableToExcel(clip, nome_xls, "", "")
@@ -40,4 +40,5 @@ import arcpy
 
         
 
+#fim
 
