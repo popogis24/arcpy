@@ -33,9 +33,9 @@ def get_shapefiles_recursive(folder_path):
                 shapefile_path = os.path.join(dirpath, filename)
                 filename_novo = filename.replace(".shp","")
                 shapefiles.append(os.path.join(dirpath, filename))
-                arcpy.management.CalculateField(in_table=shapefile_path, field='Name', expression=fr"!Name! + '{filename_novo}'", expression_type="PYTHON3")
+                arcpy.management.CalculateField(in_table=shapefile_path, field='Name', expression=fr"'{filename_novo}'", expression_type="PYTHON3")
     return shapefiles
     
 shapefiles = get_shapefiles_recursive(fr'C:\Users\anderson.souza\Documents\MSP_Data\Vector_Data\SIMMAM_2021\wetransfer_mma_tartarugas_2023-07-10_0307\MMA Corais\coral')
 
-arcpy.management.Merge(inputs=shapefiles, output=fr'C:\Users\anderson.souza\Documents\MSP_Data\Vector_Data\SIMMAM_2021\wetransfer_mma_tartarugas_2023-07-10_0307\merge_corais.shp')
+arcpy.management.Merge(inputs=shapefiles, output=fr'C:\Users\anderson.souza\Documents\MSP_Data\Vector_Data\SIMMAM_2021\wetransfer_mma_tartarugas_2023-07-10_0307\merge_corais3.shp')
