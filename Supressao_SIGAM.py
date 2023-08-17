@@ -4,33 +4,40 @@ id_projeto = arcpy.GetParameterAsText(2)
 campo_classe = arcpy.GetParameterAsText(3)
 campo_estagio = arcpy.GetParameterAsText(4)
 campo_tipo = arcpy.GetParameterAsText(5)
+sigam_output = arcpy.GetParameterAsText(6)
 
 ########codeblocks########
 codeblock_idtipovege = '''
 def vegetacao_classe(veg_classe):
     if veg_classe == 'Contato Manguezal - Floresta Alta de Restinga':
-        return '11'
+        return 11
     elif veg_classe == 'Floresta Alta de Restinga':
-        return '6'
+        return 6
     elif veg_classe == 'Floresta Ombrófila Densa':
-        return '12'
+        return 12
     elif veg_classe == 'Manguezal':
-        return '2'
+        return 2
+    elif veg_classe == 'Campo antrópico':
+        return 1
+    elif veg_classe == 'Áreas cultivadas':
+        return 1
+    elif veg_classe == 'Vegetação higrófila herbáceo-arbustiva':
+        return 12
     else:
-        return '0'
+        return 404
 '''
 codeblock_idtipoarea =''' 
-def tipoarea (tipo):
-    if tipo == 'Cursos d\'água':
-        return == '7'
+def tipoarea(tipo):
+    if tipo == "Cursos d'água":
+        return 7
     elif tipo == 'Manguezal':
-        return == '13'
+        return 13
     elif tipo == 'Nascentes':
-        return == '14'
-    elif tipo == '':
-        return == 'Área Comum Não protegida'
+        return 14
+    elif tipo == 'Fora da APP':
+        return 0
     else:
-        tipo == 'out'
+        return 404
 '''
 
 codeblock_vegtipo = '''
@@ -108,80 +115,61 @@ def estagioid(idestagiox):
         return 'Estágio Secundário Inicial'
     elif idestagiox == 203:
         return 'Estágio Pioneiro'
-    elif idestagiox == 204:
-        return == 'Estágio Primário'
+    elif idestagiox == 297:
+        return 'Não se aplica'
     else:
-        return "Não se aplica"
+        return "erro"
 '''
 codeblock_idestagio ='''
 def usoestagio(estagio):
-    if estagio == "":
-        return '297'
+    if estagio == ' ':
+        return 297
     elif estagio == "Avançado":
-        return '277'
+        return 277
     elif estagio == 'Médio':
-        return == '278'
+        return 278
+    elif estagio == 'Inicial':
+        return 279
+    elif estagio == 'Pioneiro':
+        return 203
     else:
-        return ''
+        return "erro"
     '''
-
-codeblock_autoincrement = '''
-rec=0
-def autoIncrement():
- global rec
- pStart = 1 #muda para nao iniciar do num 1
- pInterval = 1 #mude este numero para mudar o intervalo de seq
- if (rec == 0): 
-  rec = pStart 
- else: 
-  rec = rec + pInterval 
- return rec
- '''
-
 #multipart to singlepart
 arcpy.management.MultipartToSinglepart(uso_base, 'exploded_uso_base')
 
 #feature to point
 arcpy.management.FeatureToPoint('exploded_uso_base', 'uso_base_point', 'INSIDE')
 
+#append o uso_base no shape_sigam
+arcpy.management.Append('exploded_uso_base', shape_sigam, 'NO_TEST', "", "")
+
 #spatial join
-arcpy.analysis.SpatialJoin(shape_sigam, 'uso_base_point', 'shape_sigam', 'JOIN_ONE_TO_ONE', 'KEEP_ALL', "", "", "", "")
+uso_base_point = arcpy.analysis.SpatialJoin(shape_sigam, 'uso_base_point', sigam_output, 'JOIN_ONE_TO_ONE', 'KEEP_COMMON', "", "", "", "")
 
 #CALCULATE FIELD
 #ID_TIPO_AREA
-arcpy.management.CalculateField(shape_sigam, 'idTipoArea', 'tipoarea(!campo_classe!)', "", codeblock_idtipoarea, "", "")
+arcpy.management.CalculateField(uso_base_point, 'idTipoArea', fr'tipoarea(!{campo_tipo}!)','PYTHON3', codeblock_idtipoarea, 'DOUBLE', '')
 
 #ID_TIPOVEGE
-arcpy.management.CalculateField(shape_sigam, 'idTipoVege', fr'vegetacao_classe(!{campo_classe}!)', "", codeblock_idtipovege, "", "")
+arcpy.management.CalculateField(uso_base_point, 'idTipoVege', fr'vegetacao_classe(!{campo_classe}!)', "", codeblock_idtipovege, "", "")
 
 #VegTipo
-arcpy.management.CalculateField(shape_sigam, 'VegTipo', 'tipoveg(!idTipoVege!)', "", codeblock_vegtipo, "", "")
+arcpy.management.CalculateField(uso_base_point, 'VegTipo', 'tipoveg(!idTipoVege!)', "", codeblock_vegtipo, "", "")
     
 #AreaTipo
-arcpy.management.CalculateField(shape_sigam, 'AreaTipo', 'remover_zeros(!AreaTipo!)', "", codeblock_areatipo, "", "")
+arcpy.management.CalculateField(uso_base_point, 'AreaTipo', 'remover_zeros(!AreaTipo!)', "", codeblock_areatipo, "", "")
 
 #idEstagioS
-arcpy.management.CalculateField(shape_sigam, 'idEstagioS', fr'estagioz(!{campo_estagio}!)', "", codeblock_idestagio , "", "")
+arcpy.management.CalculateField(uso_base_point, 'idEstagioS', fr'usoestagio(!{campo_estagio}!)', "", codeblock_idestagio , "", "")
 
 #desEstagio
-arcpy.management.CalculateField(shape_sigam, 'desEstagio', 'estagioid(!idEstagioS!)', "", codeblock_desestagio, "", "")
+arcpy.management.CalculateField(uso_base_point, 'desEstagio', 'estagioid(!idEstagioS!)', "", codeblock_desestagio, "", "")
 
 #IdProcDet
-arcpy.management.CalculateField(shape_sigam, 'IdProcDet', fr'{id_projeto}', "", "", "", "")
+arcpy.management.CalculateField(uso_base_point, 'IdProcDet', fr'{id_projeto}', "", "", "", "")
 
 #DATAATUALIZ
-arcpy.management.CalculateField(shape_sigam, 'datAtualiz', "10/10/2001", "", "", "", "")
+arcpy.management.CalculateField(uso_base_point, 'datAtualiz', "'10/10/2001'", "", "", "", "")
 
-#ADICIONA UMA COLUNA 
-arcpy.management.AddField(shape_sigam, 'div', 'FLOAT', "", "", "", "", "", "", "")
-
-#calcula essa coluna COM A CONTAGEM AUTOINCREMENTADA
-arcpy.management.CalculateField(shape_sigam, 'cont', 'autoIncrement()', "", codeblock_autoincrement, "", "")
-
-#ADICIONA UMA COLUNA COM AS DIVISOES
-arcpy.management.AddField(shape_sigam, 'div', 'FLOAT', "", "", "", "", "", "", "")
-
-
-
-
-
+arcpy.management.AddField(sigam_output, 'div', 'DOUBLE', "", "", "", "", "", "", "")
