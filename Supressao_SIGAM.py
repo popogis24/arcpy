@@ -4,7 +4,6 @@ id_projeto = arcpy.GetParameterAsText(2)
 campo_classe = arcpy.GetParameterAsText(3)
 campo_estagio = arcpy.GetParameterAsText(4)
 campo_tipo = arcpy.GetParameterAsText(5)
-sigam_output = arcpy.GetParameterAsText(6)
 
 ########codeblocks########
 codeblock_idtipovege = '''
@@ -145,7 +144,7 @@ arcpy.management.FeatureToPoint('exploded_uso_base', 'uso_base_point', 'INSIDE')
 arcpy.management.Append('exploded_uso_base', shape_sigam, 'NO_TEST', "", "")
 
 #spatial join
-uso_base_point = arcpy.analysis.SpatialJoin(shape_sigam, 'uso_base_point', sigam_output, 'JOIN_ONE_TO_ONE', 'KEEP_COMMON', "", "", "", "")
+uso_base_point = arcpy.analysis.SpatialJoin(shape_sigam, 'uso_base_point', 'sigam_output', 'JOIN_ONE_TO_ONE', 'KEEP_COMMON', "", "", "", "")
 
 #CALCULATE FIELD
 #ID_TIPO_AREA
@@ -172,4 +171,10 @@ arcpy.management.CalculateField(uso_base_point, 'IdProcDet', fr'{id_projeto}', "
 #DATAATUALIZ
 arcpy.management.CalculateField(uso_base_point, 'datAtualiz', "'10/10/2001'", "", "", "", "")
 
-arcpy.management.AddField(sigam_output, 'div', 'DOUBLE', "", "", "", "", "", "", "")
+
+#deleta as features do shape_sigam
+arcpy.management.DeleteFeatures(shape_sigam)
+
+#coloca todas as features do output_sigam no shape sigam
+arcpy.management.Append('sigam_output', shape_sigam, 'NO_TEST', "", "")
+
