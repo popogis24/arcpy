@@ -27,7 +27,7 @@ for i in range(div):
     arcpy.management.SelectLayerByAttribute(
         in_layer_or_view='try3_SnapOff20',
         selection_type="NEW_SELECTION",
-        where_clause="div >= '{}' AND div <= '{}'".format(start_range, end_range),
+        where_clause="div >= {} AND div <= {}".format(start_range, end_range),
         invert_where_clause=None
     )
     
