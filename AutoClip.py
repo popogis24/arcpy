@@ -5,11 +5,12 @@ arcpy.env.addOutputsToMap = False
 arcpy.env.overwriteOutput = True
 
 #seta um workspace
-arcpy.env.workspace = fr'R:\09-Banco_De_Dados_Geografico\01-Clientes\CHESF\PreLeilao_Lote2_3\GDB_Dados_Referenciais\PL_LOTE_02_03.gdb\Dados_Referenciais_F23'
+arcpy.env.workspace = fr'R:\09-Banco_De_Dados_Geografico\01-Clientes\CHESF\PreLeilao_Lote2_3\GDB_Dados_Referenciais\PL_LOTE_02_03_Geodesic.gdb\Dados_Referenciais'
 #area do clip
-clip = fr'C:\Users\anderson.souza\Downloads\FUSO_23.shp'
+uns_clip = fr'C:\Users\anderson.souza\Downloads\DIV_FUSOS.shp'
 dataset_final= fr'R:\09-Banco_De_Dados_Geografico\01-Clientes\CHESF\PreLeilao_Lote2_3\GDB_Dados_Referenciais\PL_LOTE_02_03_Clipped.gdb\Dados_Referenciais_F23'
-
+arcpy.MakeFeatureLayer_management(uns_clip, "layer")
+clip = arcpy.SelectLayerByAttribute_management("layer", "NEW_SELECTION", "fuso = 'fuso 23'")
 #conta quantas features tem no workspace
 
 var_global = 0
@@ -21,8 +22,10 @@ for fc in fcList:
     var_global += 1
     print("Andamento: " + str(var_global) + " de " + str(count))
     try:
+        #seleciona por atributo o shape clip
+
         #clipa cada um dos feature classes e salva no mesmo dataset
-        arcpy.Clip_analysis(fc, clip, os.path.join(dataset_final, fc + "_clip"))
+        arcpy.analysis.PairwiseClip(fc, clip, os.path.join(dataset_final, fc + "_F23"))
         print("Clip realizado com sucesso para o feature class: " + fc)
     except:
         print("Erro no clip do feature class: " + fc + "... Tentando novamente...")
