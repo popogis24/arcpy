@@ -121,4 +121,3 @@ arcpy.Delete_management('erase_copy')
 arcpy.Delete_management('faixa_servidao_buffer')
 arcpy.Delete_management('feature_copiada')
 arcpy.Delete_management('teste2')
-
