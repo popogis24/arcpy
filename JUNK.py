@@ -1,5 +1,7 @@
 import arcpy
 import os.path
+import pandas as pd
+import numpy as np
 
 lt = 'linha_de_transmissao'
 fx_servico = 'fx_servico'
@@ -43,10 +45,8 @@ def gdb_to_dict(gdb_path):
     return feature_class_dict
 
 
-
 def ltxarea(fc):
     #dissolve tema
-    fields(fc)
     dissolved_fc = dissolve(fc)
     #intersecta o tema com o lt
     filename = os.path.basename(fc)[26:]
@@ -55,6 +55,10 @@ def ltxarea(fc):
     arcpy.AddField_management(output, 'Extensao', 'FLOAT')
     #calcula a extensao da lt (linha)
     arcpy.CalculateField_management(output, 'Extensao', '!shape.length@meters!', 'PYTHON')
+
+
+
+
 def fxservicoxarea(fc):
     #dissolve tema
     fields(fc)
@@ -103,6 +107,25 @@ def nearpolygon (fc,buffer):
     arcpy.Near_analysis(dissolved_fc, lt, buffer)
     expression = "round(!NEAR_DIST! / 1000.0, 2)"
     arcpy.CalculateField_management(dissolved_fc, fr"lt{buffer[:2]}km", expression, "PYTHON")
+
+
+def toexcel(fc):
+    #EXCEL
+    campos_selecionados = fields(fc)
+    # Obter os nomes originais dos campos
+    desc = arcpy.Describe(fc)
+    campos_originais = [field.name for field in desc.fields if field.name in campos_selecionados]
+    # Criar um dataframe pandas a partir da tabela de atributos com os campos selecionados
+    table = arcpy.da.TableToNumPyArray(fc, campos_originais, skip_nulls=False)
+    df = pd.DataFrame(table)
+
+    #verificar se o data frame está vazio
+    if df.empty:
+        df = pd.DataFrame({"Mensagem": ["Não há registros para esse tema na área de estudo"]})
+    else:
+        
+
+
 
 
 
