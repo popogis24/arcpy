@@ -120,10 +120,6 @@ def toexcel(fc):
     else:
         
 
-
-
-
-
 result_dict = gdb_to_dict(gdb_path)
 
 for key, value in result_dict.items():
@@ -143,5 +139,6 @@ for key, value in result_dict.items():
         ltxponto(os.path.join(gdb_path, value["nome"])) 
 
 
+print('teste')
         
         
