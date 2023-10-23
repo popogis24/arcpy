@@ -35,15 +35,14 @@ def fields(fc):
         fields_to_keep.extend('NOME_UC','TIPO_UC')
     
     return fields_to_keep
-def gdb_to_dict(gdb_path):
-    arcpy.env.workspace = gdb_path
+def gdb_to_dict(gdb):
+    arcpy.env.workspace = gdb
     feature_classes = arcpy.ListFeatureClasses()
     feature_class_dict = {}
     for fc in feature_classes:
         desc = arcpy.Describe(fc)
         feature_class_dict[fc] = {"nome": desc.name, "tipo": determine_feature_type(desc)}
     return feature_class_dict
-
 
 def ltxarea(fc):
     #dissolve tema
@@ -55,10 +54,6 @@ def ltxarea(fc):
     arcpy.AddField_management(output, 'Extensao', 'FLOAT')
     #calcula a extensao da lt (linha)
     arcpy.CalculateField_management(output, 'Extensao', '!shape.length@meters!', 'PYTHON')
-
-
-
-
 def fxservicoxarea(fc):
     #dissolve tema
     fields(fc)
