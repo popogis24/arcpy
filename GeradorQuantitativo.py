@@ -44,6 +44,8 @@ def gdb_to_dict(gdb):
         feature_class_dict[fc] = {"nome": desc.name, "tipo": determine_feature_type(desc)}
     return feature_class_dict
 
+
+#FUNCOES GEOMETRICAS
 def ltxarea(fc):
     #dissolve tema
     dissolved_fc = dissolve(fc)
@@ -102,7 +104,7 @@ def nearpolygon (fc,buffer):
     arcpy.Near_analysis(dissolved_fc, lt, buffer)
     expression = "round(!NEAR_DIST! / 1000.0, 2)"
     arcpy.CalculateField_management(dissolved_fc, fr"lt{buffer[:2]}km", expression, "PYTHON")
-
+#FIM DAS FUNÇÕES GEOMETRICAS
 
 def toexcel(fc):
     #EXCEL
@@ -139,6 +141,3 @@ for key, value in result_dict.items():
         ltxponto(os.path.join(gdb_path, value["nome"])) 
 
 
-print('teste')
-        
-        
