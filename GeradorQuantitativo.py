@@ -44,7 +44,6 @@ def gdb_to_dict(gdb):
         feature_class_dict[fc] = {"nome": desc.name, "tipo": determine_feature_type(desc)}
     return feature_class_dict
 
-
 #FUNCOES GEOMETRICAS
 def ltxarea(fc):
     #dissolve tema
