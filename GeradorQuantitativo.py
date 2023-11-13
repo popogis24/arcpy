@@ -8,6 +8,7 @@ fx_servico = 'fx_servico'
 fx_servidao = 'fx_servidao'
 gdb_path = r'C:\Users\anderson.souza\Documents\CGT_R3_CO.gdb\Dados_Caruso'
 gdb_quantitativo = r'C:\Users\anderson.souza\Documents\CGT_R3_CO.gdb\Dados_Quantitativo'
+workspace_final = r'C:\Users\anderson.souza\Documents...'
 
 def determine_feature_type(desc):
     if desc.shapeType == 'Point':
@@ -45,19 +46,24 @@ def gdb_to_dict(gdb):
     return feature_class_dict
 
 #FUNCOES GEOMETRICAS
+
+#FUNCOES DE INTERSECCAO
 def ltxarea(fc):
     #dissolve tema
     dissolved_fc = dissolve(fc)
     #intersecta o tema com o lt
-    filename = os.path.basename(fc)[26:]
+    filename = os.path.basename(fc)
     output = arcpy.Intersect_analysis([lt, dissolved_fc], os.path.join(gdb_quantitativo,'LT_x_'+filename))
     #cria um field extensao
     arcpy.AddField_management(output, 'Extensao', 'FLOAT')
     #calcula a extensao da lt (linha)
     arcpy.CalculateField_management(output, 'Extensao', '!shape.length@meters!', 'PYTHON')
+    #retorna o output em um shapefile
+    #copia o output pra uma pasta
+    arcpy.CopyFeatures_management(output, os.path.join(workspace_final, filename))
+
 def fxservicoxarea(fc):
     #dissolve tema
-    fields(fc)
     dissolved_fc = dissolve(fc)
     #intersecta a fx_servico com o lt
     filename = os.path.basename(fc)[26:]
@@ -66,10 +72,12 @@ def fxservicoxarea(fc):
     arcpy.AddField_management(output, 'Area', 'FLOAT')
     #calcula a area da fx_servico (poligono) em hectares
     arcpy.CalculateField_management(output, 'Area', '!shape.area@hectares!', 'PYTHON')
+    #retorna o output em um shapefile
+    arcpy.CopyFeatures_management(output, os.path.join(workspace_final, filename))
+
 def fxservidaoxarea(fc):
     #dissolve tema
-    fields(fc)
-    dissolved_fc = dissolve(fc)[26:]
+    dissolved_fc = dissolve(fc)
     #intersecta a fx_servico com o lt
     filename = os.path.basename(fc)
     output = arcpy.Intersect_analysis([fx_servidao, dissolved_fc], os.path.join(gdb_quantitativo,'FXservidao_x_'+filename))
@@ -77,34 +85,67 @@ def fxservidaoxarea(fc):
     arcpy.AddField_management(output, 'Area', 'FLOAT')
     #calcula a area da fx_servico (poligono) em hectares
     arcpy.CalculateField_management(output, 'Area', '!shape.area@hectares!', 'PYTHON')
+    #retorna o output em um shapefile
+    arcpy.CopyFeatures_management(output, os.path.join(workspace_final, filename))
+
 def ltxlinha(fc):
-    fields(fc)
+    dissolved_fc = dissolve(fc)
     #faça um intersect que gere pontos
-    filename = os.path.basename(fc)[26:]
-    output = arcpy.Intersect_analysis([lt, fc], os.path.join(gdb_quantitativo,'LT_x_'+filename),"","","POINT")
+    filename = os.path.basename(fc)
+    output = arcpy.Intersect_analysis([lt, dissolved_fc], os.path.join(gdb_quantitativo,'LT_x_'+filename),"","","POINT")
+    #retorna o output em um shapefile
+    arcpy.CopyFeatures_management(output, os.path.join(workspace_final, filename))
+
 def fxservidaoxlinha(fc):
-    fields(fc)
+    dissolved_fc = dissolve(fc)
     #faça um intersect que gere pontos
-    filename = os.path.basename(fc)[26:]
-    output = arcpy.Intersect_analysis([fx_servidao, fc], os.path.join(gdb_quantitativo,'FXservidao_x_'+filename),"","","POINT")
-def ltxponto(fc):
-    fields(fc)
-    arcpy.Near_analysis(fc, lt, '10000')
+    filename = os.path.basename(fc)
+    output = arcpy.Intersect_analysis([fx_servidao, dissolved_fc], os.path.join(gdb_quantitativo,'FXservidao_x_'+filename),"","","POINT")
+    #retorna o output em um shapefile
+    arcpy.CopyFeatures_management(output, os.path.join(workspace_final, filename))
+
+#FUNCOES DE NEAR
+def ltxfeature(fc):
+    dissolved_fc = dissolve(fc)
+    arcpy.Near_analysis(dissolved_fc, lt, '50000')
     expression = "round(!NEAR_DIST! / 1000.0, 2)"
     arcpy.CalculateField_management(fc, fr"lt_10km", expression, "PYTHON")
+    #join !NEAR_FID! com lt e pegar o nome da lt
+    joinedfc = arcpy.management.JoinField(in_data=dissolved_fc, in_field='NEAR_FID', join_table=lt, join_field='FID')
+    arcpy.CopyFeatures_management(joinedfc, os.path.join(workspace_final, os.path.basename(fr"LT_Near_{fc}")))
+
+'''
 def fxservidaoxponto(fc):
-    fields(fc)
-    arcpy.Near_analysis(fc, fx_servidao, '10000')
+    dissolved_fc = dissolve(fc)
+    arcpy.Near_analysis(dissolved_fc, fx_servidao, '10000')
     expression = "round(!NEAR_DIST! / 1000.0, 2)"
-    arcpy.CalculateField_management(fc, fr"fsd_10km", expression, "PYTHON")
+    arcpy.CalculateField_management(dissolved_fc, fr"fsd_10km", expression, "PYTHON")
+    #join !NEAR_FID! com lt e pegar o nome da lt
+    joinedfc = arcpy.management.AddJoin(in_layer_or_view=dissolved_fc, in_field='NEAR_FID', join_table=lt, join_field='FID')
+    arcpy.CopyFeatures_management(joinedfc, os.path.join(workspace_final, os.path.basename(fr"Servidao_Near_{fc}")))
+
+def fxservicoxponto(fc):
+    dissolved_fc = dissolve(fc)
+    arcpy.Near_analysis(dissolved_fc, fx_servico, '10000')
+    expression = "round(!NEAR_DIST! / 1000.0, 2)"
+    arcpy.CalculateField_management(dissolved_fc, fr"fsd_10km", expression, "PYTHON")
+    #join !NEAR_FID! com lt e pegar o nome da lt
+    joinedfc = arcpy.management.AddJoin(in_layer_or_view=dissolved_fc, in_field='NEAR_FID', join_table=lt, join_field='FID')
+    arcpy.CopyFeatures_management(joinedfc, os.path.join(workspace_final, os.path.basename(fr"Servico_Near_{fc}")))
+
 def nearpolygon (fc,buffer):
-    fields(fc)
-    dissolved_fc = dissolve(fc)[26:]
+    dissolved_fc = dissolve(fc)
     arcpy.Near_analysis(dissolved_fc, lt, buffer)
     expression = "round(!NEAR_DIST! / 1000.0, 2)"
     arcpy.CalculateField_management(dissolved_fc, fr"lt{buffer[:2]}km", expression, "PYTHON")
+    #join !NEAR_FID! com lt e pegar o nome da lt
+    joinedfc = arcpy.management.AddJoin(in_layer_or_view=dissolved_fc, in_field='NEAR_FID', join_table=lt, join_field='FID')
+    arcpy.CopyFeatures_management(joinedfc, os.path.join(workspace_final, os.path.basename(fr"Polygon_Near_{fc}")))
+'''
+
 #FIM DAS FUNÇÕES GEOMETRICAS
 
+#FUNCOES DE ATRIBUTOS  #####NOTA, ADICIONAR A FIELD DO NEAR_DIST na lista de fields to keep
 def toexcel(fc):
     #EXCEL
     campos_selecionados = fields(fc)
@@ -138,5 +179,4 @@ for key, value in result_dict.items():
         fxservidaoxlinha(os.path.join(gdb_path, value["nome"]))
     elif value["tipo"] == "Ponto":
         ltxponto(os.path.join(gdb_path, value["nome"])) 
-
 
