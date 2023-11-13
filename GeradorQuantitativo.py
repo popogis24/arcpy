@@ -3,6 +3,9 @@ import os.path
 import pandas as pd
 import numpy as np
 
+arcpy.env.overwriteOutput = True
+
+
 lt = 'linha_de_transmissao'
 fx_servico = 'fx_servico'
 fx_servidao = 'fx_servidao'
@@ -66,7 +69,7 @@ def fxservicoxarea(fc):
     #dissolve tema
     dissolved_fc = dissolve(fc)
     #intersecta a fx_servico com o lt
-    filename = os.path.basename(fc)[26:]
+    filename = os.path.basename(fc)
     output = arcpy.Intersect_analysis([fx_servico, dissolved_fc], os.path.join(gdb_quantitativo,'FXservico_x_'+filename))
     #cria um field area
     arcpy.AddField_management(output, 'Area', 'FLOAT')
@@ -105,14 +108,26 @@ def fxservidaoxlinha(fc):
     arcpy.CopyFeatures_management(output, os.path.join(workspace_final, filename))
 
 #FUNCOES DE NEAR
-def ltxfeature(fc):
-    dissolved_fc = dissolve(fc)
-    arcpy.Near_analysis(dissolved_fc, lt, '50000')
+def ltxfeature(fc,buffer):
+    dissolved_fc = fc
+    
+    arcpy.analysis.Near(in_features=fc, near_features=lt, search_radius=buffer)
     expression = "round(!NEAR_DIST! / 1000.0, 2)"
-    arcpy.CalculateField_management(fc, fr"lt_10km", expression, "PYTHON")
-    #join !NEAR_FID! com lt e pegar o nome da lt
-    joinedfc = arcpy.management.JoinField(in_data=dissolved_fc, in_field='NEAR_FID', join_table=lt, join_field='FID')
-    arcpy.CopyFeatures_management(joinedfc, os.path.join(workspace_final, os.path.basename(fr"LT_Near_{fc}")))
+    arcpy.CalculateField_management(fc, 'Distancia', expression, "PYTHON")
+    #join !NEAR_FID! com lt
+    joinedfc = arcpy.management.JoinField(in_data=dissolved_fc, in_field='NEAR_FID', join_table=lt, join_field='OBJECTID')
+    arcpy.CalculateField_management(joinedfc, 'OBS', expression, "PYTHON")
+    #seleciona todos que a coluna NEAR_FID é diferente de -1
+    selectfc = arcpy.management.SelectLayerByAttribute(in_layer_or_view=joinedfc, selection_type="NEW_SELECTION", where_clause="NEAR_FID <> -1")
+    #copia o select pra uma pasta
+    output = arcpy.CopyFeatures_management(selectfc, fr'{workspace_final}\LT_Near_{os.path.basename(fc)}')
+    #ADD FIELD de texto
+    arcpy.AddField_management(output, 'OBS', 'TEXT')
+    #CALCULATE FIELD de texto, se o NEAR_DIST for 0, escreva "Tema sobrepoe a LT", else, nao faça nada
+    expression = "if !NEAR_DIST! == 0: 'Tema sobrepoe a LT'"
+    arcpy.CalculateField_management(output, 'OBS', expression, "PYTHON")
+    
+
 
 '''
 def fxservidaoxponto(fc):
