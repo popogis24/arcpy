@@ -12,6 +12,7 @@ fx_servidao = 'fx_servidao'
 gdb_path = r'C:\Users\anderson.souza\Documents\CGT_R3_CO.gdb\Dados_Caruso'
 gdb_quantitativo = r'C:\Users\anderson.souza\Documents\CGT_R3_CO.gdb\Dados_Quantitativo'
 workspace_final = r'C:\Users\anderson.souza\Documents...'
+pasta_quantitativo = r'C:\Users\anderson.souza\Documents\Quantitativo'
 
 def determine_feature_type(desc):
     if desc.shapeType == 'Point':
@@ -167,15 +168,18 @@ def toexcel(fc):
     # Obter os nomes originais dos campos
     desc = arcpy.Describe(fc)
     campos_originais = [field.name for field in desc.fields if field.name in campos_selecionados]
+    data = [row for row in arcpy.da.SearchCursor(fc, campos_originais)]
     # Criar um dataframe pandas a partir da tabela de atributos com os campos selecionados
-    table = arcpy.da.TableToNumPyArray(fc, campos_originais, skip_nulls=False)
-    df = pd.DataFrame(table)
-
+    df = pd.DataFrame(data, columns=campos_originais)
     #verificar se o data frame está vazio
     if df.empty:
         df = pd.DataFrame({"Mensagem": ["Não há registros para esse tema na área de estudo"]})
     else:
-        
+        pass
+    # Salvar o dataframe em um arquivo Excel
+    df.to_excel(os.path.join(pasta_quantitativo, os.path.basename(fr"{fc}.xlsx")), index=False)
+   
+    
 
 result_dict = gdb_to_dict(gdb_path)
 
