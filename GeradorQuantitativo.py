@@ -108,6 +108,14 @@ def fxservidaoxlinha(fc):
     #retorna o output em um shapefile
     arcpy.CopyFeatures_management(output, os.path.join(workspace_final, filename))
 
+def fxservicoxlinha(fc):
+    dissolved_fc = dissolve(fc)
+    #faça um intersect que gere pontos
+    filename = os.path.basename(fc)
+    output = arcpy.Intersect_analysis([fx_servico, dissolved_fc], os.path.join(gdb_quantitativo,'FXservico_x_'+filename),"","","POINT")
+    #retorna o output em um shapefile
+    arcpy.CopyFeatures_management(output, os.path.join(workspace_final, filename))
+
 #FUNCOES DE NEAR
 def ltxfeature(fc,buffer):
     dissolved_fc = fc
@@ -179,7 +187,7 @@ def toexcel(fc):
     # Salvar o dataframe em um arquivo Excel
     df.to_excel(os.path.join(pasta_quantitativo, os.path.basename(fr"{fc}.xlsx")), index=False)
    
-    
+
 
 result_dict = gdb_to_dict(gdb_path)
 
