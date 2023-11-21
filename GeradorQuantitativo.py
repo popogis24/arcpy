@@ -6,13 +6,38 @@ import numpy as np
 arcpy.env.overwriteOutput = True
 
 
-lt = 'linha_de_transmissao'
-fx_servico = 'fx_servico'
-fx_servidao = 'fx_servidao'
-gdb_path = r'C:\Users\anderson.souza\Documents\CGT_R3_CO.gdb\Dados_Caruso'
-gdb_quantitativo = r'C:\Users\anderson.souza\Documents\CGT_R3_CO.gdb\Dados_Quantitativo'
-workspace_final = r'C:\Users\anderson.souza\Documents...'
-pasta_quantitativo = r'C:\Users\anderson.souza\Documents\Quantitativo'
+lt = 'linha_de_transmissao' #linha de transmissão
+fx_interesse = 'fx_interesse' #faixa de interesse
+bdgis = 'bdgis' # insira o endereço do banco de dados GIS
+temas_extra = 'temas_extra' #multiple values (separados por vírgula) de temas que não estão no banco de dados GIS
+gdb_path = r'C:\Users\anderson.souza\Documents\ArcGIS\Projects\MyProject50\10.1.2.20.sde' #caminho do geodatabase final, que terá os temas que estão no banco de dados GIS
+workspace_final = r'C:\Users\anderson.souza\Documents...' ### não sei ainda
+pasta_quantitativo = r'C:\Users\anderson.souza\Documents\Quantitativo' #pasta onde serão salvos os arquivos excel
+arcpy.env.workspace = gdb_path
+feature_datasets = arcpy.ListDatasets()
+if 'Quantitativo' not in feature_datasets:
+    arcpy.CreateFeatureDataset_management(gdb_path, 'Quantitativo', arcpy.Describe(lt).spatialReference)
+else:
+    pass
+gdb_quantitativo = os.path.join(gdb_path, 'Quantitativo')
+
+
+def project(gdb):
+
+    #list feature classes do gdb_path
+    arcpy.env.workspace = bdgis
+    feature_classes = arcpy.ListFeatureClasses()
+    #append temas_extra na lista de feature classes, se existir algum tema extra
+    if temas_extra != '':
+        feature_classes.append(temas_extra)
+    #cria um novo feature dataset no gdb_path, mas faça ele ter o mesmo sistema de projeção da LT
+    try:
+        arcpy.CreateFeatureDataset_management(gdb, 'Temas', arcpy.Describe(lt).spatialReference)
+    except:
+        pass
+    for fc in feature_classes:
+        arcpy.FeatureClassToFeatureClass_conversion(fc, os.path.join(gdb, 'Temas'), fc)
+
 
 def determine_feature_type(desc):
     if desc.shapeType == 'Point':
@@ -23,6 +48,7 @@ def determine_feature_type(desc):
         return 'Poligono'
     else:
         return 'Desconhecido'
+    
 def dissolve(fc):
     fields_interesse = []
     filename = os.path.basename(fc)
@@ -30,16 +56,16 @@ def dissolve(fc):
         fields_interesse.extend('NOME_UC','TIPO_UC')
     elif filename == 'Aerodromos':
         fields_interesse.extend('NOME_AERODROMO','TIPO_AERODROMO')
-
     output = arcpy.Dissolve_management(fc, "fcdissolved", fields_interesse) 
     return output
+
 def fields(fc):
     filename = os.path.basename(fc)
     fields_to_keep = []
     if filename == 'Unidade_de_Conservação':
         fields_to_keep.extend('NOME_UC','TIPO_UC')
-    
     return fields_to_keep
+
 def gdb_to_dict(gdb):
     arcpy.env.workspace = gdb
     feature_classes = arcpy.ListFeatureClasses()
@@ -66,25 +92,12 @@ def ltxarea(fc):
     #copia o output pra uma pasta
     arcpy.CopyFeatures_management(output, os.path.join(workspace_final, filename))
 
-def fxservicoxarea(fc):
+def fxinteressexarea(fc):
     #dissolve tema
     dissolved_fc = dissolve(fc)
     #intersecta a fx_servico com o lt
     filename = os.path.basename(fc)
-    output = arcpy.Intersect_analysis([fx_servico, dissolved_fc], os.path.join(gdb_quantitativo,'FXservico_x_'+filename))
-    #cria um field area
-    arcpy.AddField_management(output, 'Area', 'FLOAT')
-    #calcula a area da fx_servico (poligono) em hectares
-    arcpy.CalculateField_management(output, 'Area', '!shape.area@hectares!', 'PYTHON')
-    #retorna o output em um shapefile
-    arcpy.CopyFeatures_management(output, os.path.join(workspace_final, filename))
-
-def fxservidaoxarea(fc):
-    #dissolve tema
-    dissolved_fc = dissolve(fc)
-    #intersecta a fx_servico com o lt
-    filename = os.path.basename(fc)
-    output = arcpy.Intersect_analysis([fx_servidao, dissolved_fc], os.path.join(gdb_quantitativo,'FXservidao_x_'+filename))
+    output = arcpy.Intersect_analysis([fx_interesse, dissolved_fc], os.path.join(gdb_quantitativo,'FXInteresse_x_'+filename))
     #cria um field area
     arcpy.AddField_management(output, 'Area', 'FLOAT')
     #calcula a area da fx_servico (poligono) em hectares
@@ -100,21 +113,14 @@ def ltxlinha(fc):
     #retorna o output em um shapefile
     arcpy.CopyFeatures_management(output, os.path.join(workspace_final, filename))
 
-def fxservidaoxlinha(fc):
+def fxinteressexlinha(fc):
     dissolved_fc = dissolve(fc)
     #faça um intersect que gere pontos
     filename = os.path.basename(fc)
-    output = arcpy.Intersect_analysis([fx_servidao, dissolved_fc], os.path.join(gdb_quantitativo,'FXservidao_x_'+filename),"","","POINT")
+    output = arcpy.Intersect_analysis([fx_interesse, dissolved_fc], os.path.join(gdb_quantitativo,'FXInteresse_x_'+filename),"","","POINT")
     #retorna o output em um shapefile
     arcpy.CopyFeatures_management(output, os.path.join(workspace_final, filename))
 
-def fxservicoxlinha(fc):
-    dissolved_fc = dissolve(fc)
-    #faça um intersect que gere pontos
-    filename = os.path.basename(fc)
-    output = arcpy.Intersect_analysis([fx_servico, dissolved_fc], os.path.join(gdb_quantitativo,'FXservico_x_'+filename),"","","POINT")
-    #retorna o output em um shapefile
-    arcpy.CopyFeatures_management(output, os.path.join(workspace_final, filename))
 
 #FUNCOES DE NEAR
 def ltxfeature(fc,buffer):
