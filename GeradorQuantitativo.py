@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 
 arcpy.env.overwriteOutput = True
+arcpy.env.addOutputsToMap = False
 
 
 lt = 'linha_de_transmissao' #linha de transmissão
@@ -36,12 +37,12 @@ def project(gdb):
     for fc in feature_classes:
         arcpy.FeatureClassToFeatureClass_conversion(fc, os.path.join(gdb, 'Temas'), fc)
 
-def determine_feature_type(desc):
-    if desc.shapeType == 'Point':
+def determine_feature_type(fc):
+    if arcpy.Describe(fc).shapeType == 'Point':
         return 'Ponto'
-    elif desc.shapeType == 'Polyline':
+    elif arcpy.Describe(fc).shapeType == 'Polyline':
         return 'Linha'
-    elif desc.shapeType == 'Polygon':
+    elif arcpy.Describe(fc).shapeType == 'Polygon':
         return 'Poligono'
     else:
         return 'Desconhecido'
@@ -72,106 +73,76 @@ def gdb_to_dict(gdb):
         feature_class_dict[fc] = {"nome": desc.name, "tipo": determine_feature_type(desc)}
     return feature_class_dict
 
-#FUNCOES GEOMETRICAS
-
-#FUNCOES DE INTERSECCAO
-def ltxarea(fc):
-    #dissolve tema
+def ltxfeature(fc, lt):
     dissolved_fc = dissolve(fc)
-    #intersecta o tema com o lt
+    dissolved_fc = arcpy.CopyFeatures_management(fc, r'in_memory\fc')
     filename = os.path.basename(fc)
-    output = arcpy.Intersect_analysis([lt, dissolved_fc], os.path.join(gdb_quantitativo,'LT_x_'+filename))
-    #cria um field extensao
-    arcpy.AddField_management(output, 'Extensao', 'FLOAT')
-    #calcula a extensao da lt (linha)
-    arcpy.CalculateField_management(output, 'Extensao', '!shape.length@meters!', 'PYTHON')
-    #retorna o output em um shapefile
-    #copia o output pra uma pasta
-    arcpy.CopyFeatures_management(output, os.path.join(workspace_final, filename))
+    if "Vertices" in fields(fc):
+        if arcpy.Describe(fc).shapeType == 'Polyline':         
+            output = arcpy.analysis.Intersect(in_features=[lt, dissolved_fc], out_feature_class=os.path.join(gdb_quantitativo,'LT_x_'+filename), output_type='POINT')
+            arcpy.AddField_management(output, 'Eixo_X', 'FLOAT')
+            arcpy.CalculateField_management(output, 'Eixo_X', '!shape.firstPoint.X!', 'PYTHON')
+            arcpy.CalculateField_management(output, 'Eixo_Y', '!shape.firstPoint.Y!', 'PYTHON')
+        elif arcpy.Describe(fc).shapeType == 'Polygon':
+            output = arcpy.analysis.Intersect(in_features=[lt, dissolved_fc], out_feature_class=os.path.join(gdb_quantitativo,'LT_x_'+filename), output_type='LINE')
+            arcpy.AddField_management(output, 'Area', 'FLOAT')
+            arcpy.CalculateField_management(output, 'Extensao', '!shape.length@kilometers!', 'PYTHON')
+    elif not "Vertice" in fields(fc):
+        if arcpy.Describe(fc).shapeType == 'Polyline':
+            lt=arcpy.management.Dissolve(in_features=lt, out_feature_class='dissolved_lt')
+            output = arcpy.analysis.Intersect(in_features=[lt, dissolved_fc], out_feature_class=os.path.join(gdb_quantitativo,'LT_x_'+filename), output_type='POINT')
+            arcpy.AddField_management(output, 'Eixo_X', 'FLOAT')
+            arcpy.CalculateField_management(output, 'Eixo_X', '!shape.firstPoint.X!', 'PYTHON')
+            arcpy.CalculateField_management(output, 'Eixo_Y', '!shape.firstPoint.Y!', 'PYTHON')
+        elif arcpy.Describe(fc).shapeType == 'Polygon':
+            lt=arcpy.management.Dissolve(in_features=lt, out_feature_class='dissolved_lt')
+            output = arcpy.analysis.Intersect(in_features=[lt, dissolved_fc], out_feature_class=os.path.join(gdb_quantitativo,'LT_x_'+filename), output_type='LINE')
+            arcpy.AddField_management(output, 'Area', 'FLOAT')
+            arcpy.CalculateField_management(output, 'Extensao', '!shape.length@kilometers!', 'PYTHON')
 
-def fxinteressexarea(fc):
-    #dissolve tema
+def fxinteressexfeature(fc, fx_interesse):
     dissolved_fc = dissolve(fc)
-    #intersecta a fx_servico com o lt
+    dissolved_fc = arcpy.CopyFeatures_management(fc, r'in_memory\fc')
     filename = os.path.basename(fc)
-    output = arcpy.Intersect_analysis([fx_interesse, dissolved_fc], os.path.join(gdb_quantitativo,'FXInteresse_x_'+filename))
-    #cria um field area
-    arcpy.AddField_management(output, 'Area', 'FLOAT')
-    #calcula a area da fx_servico (poligono) em hectares
-    arcpy.CalculateField_management(output, 'Area', '!shape.area@hectares!', 'PYTHON')
-    #retorna o output em um shapefile
-    arcpy.CopyFeatures_management(output, os.path.join(workspace_final, filename))
+    if "Vertices" in fields(fc):
+        if arcpy.Describe(fc).shapeType == 'Polyline':
+            output = arcpy.Intersect_analysis([fx_interesse, dissolved_fc], os.path.join(gdb_quantitativo,'FxInteresse_x_'+filename))
+            arcpy.AddField_management(output, 'Extensao', 'FLOAT')
+            arcpy.CalculateField_management(output, 'Extensao', '!shape.length@kilometers!', 'PYTHON')
+        elif arcpy.Describe(fc).shapeType == 'Polygon':
+            output = arcpy.Intersect_analysis([fx_interesse, dissolved_fc], os.path.join(gdb_quantitativo,'FxInteresse_x_'+filename))
+            arcpy.AddField_management(output, 'Area', 'FLOAT')
+            arcpy.CalculateField_management(output, 'Area', '!shape.area@hectares!', 'PYTHON')
+    elif not "Vertice" in fields(fc):
+        if arcpy.Describe(fc).shapeType == 'Polyline':
+            fx_interesse=arcpy.management.Dissolve(in_features=fx_interesse, out_feature_class='dissolved_fx')
+            output = arcpy.Intersect_analysis([fx_interesse, dissolved_fc], os.path.join(gdb_quantitativo,'FxInteresse_x_'+filename))
+            arcpy.AddField_management(output, 'Extensao', 'FLOAT')
+            arcpy.CalculateField_management(output, 'Extensao', '!shape.length@kilometers!', 'PYTHON')
+        elif arcpy.Describe(fc).shapeType == 'Polygon':
+            fx_interesse=arcpy.management.Dissolve(in_features=fx_interesse, out_feature_class='dissolved_fx')
+            output = arcpy.Intersect_analysis([fx_interesse, dissolved_fc], os.path.join(gdb_quantitativo,'FxInteresse_x_'+filename))
+            arcpy.AddField_management(output, 'Area', 'FLOAT')
+            arcpy.CalculateField_management(output, 'Area', '!shape.area@hectares!', 'PYTHON')
+        
 
-def ltxlinha(fc):
+def ltnearfeature(fc,buffer):
     dissolved_fc = dissolve(fc)
-    #faça um intersect que gere pontos
-    filename = os.path.basename(fc)
-    output = arcpy.Intersect_analysis([lt, dissolved_fc], os.path.join(gdb_quantitativo,'LT_x_'+filename),"","","POINT")
-    #retorna o output em um shapefile
-    arcpy.CopyFeatures_management(output, os.path.join(workspace_final, filename))
-
-def fxinteressexlinha(fc):
-    dissolved_fc = dissolve(fc)
-    #faça um intersect que gere pontos
-    filename = os.path.basename(fc)
-    output = arcpy.Intersect_analysis([fx_interesse, dissolved_fc], os.path.join(gdb_quantitativo,'FXInteresse_x_'+filename),"","","POINT")
-    #retorna o output em um shapefile
-    arcpy.CopyFeatures_management(output, os.path.join(workspace_final, filename))
-
-
-#FUNCOES DE NEAR
-def ltxfeature(fc,buffer):
-    dissolved_fc = fc
-    
-    arcpy.analysis.Near(in_features=fc, near_features=lt, search_radius=buffer)
+    dissolved_fc = arcpy.CopyFeatures_management(fc, r'in_memory\fc')
+    arcpy.analysis.Near(in_features=dissolved_fc, near_features=lt, search_radius=buffer)
     expression = "round(!NEAR_DIST! / 1000.0, 2)"
-    arcpy.CalculateField_management(fc, 'Distancia', expression, "PYTHON")
-    #join !NEAR_FID! com lt
+    arcpy.CalculateField_management(dissolved_fc, 'Distancia', expression, "PYTHON")
     joinedfc = arcpy.management.JoinField(in_data=dissolved_fc, in_field='NEAR_FID', join_table=lt, join_field='OBJECTID')
     arcpy.CalculateField_management(joinedfc, 'OBS', expression, "PYTHON")
-    #seleciona todos que a coluna NEAR_FID é diferente de -1
     selectfc = arcpy.management.SelectLayerByAttribute(in_layer_or_view=joinedfc, selection_type="NEW_SELECTION", where_clause="NEAR_FID <> -1")
-    #copia o select pra uma pasta
-    output = arcpy.CopyFeatures_management(selectfc, fr'{workspace_final}\LT_Near_{os.path.basename(fc)}')
-    #ADD FIELD de texto
+    output = arcpy.CopyFeatures_management(selectfc, fr'{gdb_quantitativo}\LT_Near_{os.path.basename(fc)}')
     arcpy.AddField_management(output, 'OBS', 'TEXT')
-    #CALCULATE FIELD de texto, se o NEAR_DIST for 0, escreva "Tema sobrepoe a LT", else, nao faça nada
-    expression = "if !NEAR_DIST! == 0: 'Tema sobrepoe a LT'"
-    arcpy.CalculateField_management(output, 'OBS', expression, "PYTHON")
-    
-
-
-'''
-def fxservidaoxponto(fc):
-    dissolved_fc = dissolve(fc)
-    arcpy.Near_analysis(dissolved_fc, fx_servidao, '10000')
-    expression = "round(!NEAR_DIST! / 1000.0, 2)"
-    arcpy.CalculateField_management(dissolved_fc, fr"fsd_10km", expression, "PYTHON")
-    #join !NEAR_FID! com lt e pegar o nome da lt
-    joinedfc = arcpy.management.AddJoin(in_layer_or_view=dissolved_fc, in_field='NEAR_FID', join_table=lt, join_field='FID')
-    arcpy.CopyFeatures_management(joinedfc, os.path.join(workspace_final, os.path.basename(fr"Servidao_Near_{fc}")))
-
-def fxservicoxponto(fc):
-    dissolved_fc = dissolve(fc)
-    arcpy.Near_analysis(dissolved_fc, fx_servico, '10000')
-    expression = "round(!NEAR_DIST! / 1000.0, 2)"
-    arcpy.CalculateField_management(dissolved_fc, fr"fsd_10km", expression, "PYTHON")
-    #join !NEAR_FID! com lt e pegar o nome da lt
-    joinedfc = arcpy.management.AddJoin(in_layer_or_view=dissolved_fc, in_field='NEAR_FID', join_table=lt, join_field='FID')
-    arcpy.CopyFeatures_management(joinedfc, os.path.join(workspace_final, os.path.basename(fr"Servico_Near_{fc}")))
-
-def nearpolygon (fc,buffer):
-    dissolved_fc = dissolve(fc)
-    arcpy.Near_analysis(dissolved_fc, lt, buffer)
-    expression = "round(!NEAR_DIST! / 1000.0, 2)"
-    arcpy.CalculateField_management(dissolved_fc, fr"lt{buffer[:2]}km", expression, "PYTHON")
-    #join !NEAR_FID! com lt e pegar o nome da lt
-    joinedfc = arcpy.management.AddJoin(in_layer_or_view=dissolved_fc, in_field='NEAR_FID', join_table=lt, join_field='FID')
-    arcpy.CopyFeatures_management(joinedfc, os.path.join(workspace_final, os.path.basename(fr"Polygon_Near_{fc}")))
-'''
-
-#FIM DAS FUNÇÕES GEOMETRICAS
-
+    expression = """def neardist(x):
+        if x == 0:
+            return 'Tema Sobrepõe a LT (Verificar aba de sobreposição)'
+        else:
+            return ' '"""
+    arcpy.management.CalculateField(in_table=output, field='OBS', expression='neardist(!NEAR_DIST!)', code_block=expression)
 #FUNCOES DE ATRIBUTOS  #####NOTA, ADICIONAR A FIELD DO NEAR_DIST na lista de fields to keep
 def toexcel(fc):
     #EXCEL
@@ -190,8 +161,6 @@ def toexcel(fc):
     # Salvar o dataframe em um arquivo Excel
     df.to_excel(os.path.join(pasta_quantitativo, os.path.basename(fr"{fc}.xlsx")), index=False)
    
-
-
 result_dict = gdb_to_dict(gdb_path)
 
 for key, value in result_dict.items():
@@ -209,4 +178,15 @@ for key, value in result_dict.items():
         fxservidaoxlinha(os.path.join(gdb_path, value["nome"]))
     elif value["tipo"] == "Ponto":
         ltxponto(os.path.join(gdb_path, value["nome"])) 
+
+
+
+
+
+
+
+
+
+
+
 
