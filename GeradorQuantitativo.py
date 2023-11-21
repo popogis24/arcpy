@@ -7,13 +7,15 @@ arcpy.env.overwriteOutput = True
 arcpy.env.addOutputsToMap = False
 
 
-lt = 'linha_de_transmissao' #linha de transmissão
-fx_interesse = 'fx_interesse' #faixa de interesse
-bdgis = 'bdgis' # insira o endereço do banco de dados GIS
-temas_extra = 'temas_extra' #multiple values (separados por vírgula) de temas que não estão no banco de dados GIS
-gdb_path = r'C:\Users\anderson.souza\Documents\ArcGIS\Projects\MyProject50\10.1.2.20.sde' #caminho do geodatabase final, que terá os temas que estão no banco de dados GIS
-workspace_final = r'C:\Users\anderson.souza\Documents...' ### não sei ainda
-pasta_quantitativo = r'C:\Users\anderson.souza\Documents\Quantitativo' #pasta onde serão salvos os arquivos excel
+lt = #linha de transmissão previa
+circuito_duplo: #insira a coluna que divide os circuitos
+vert_inicial = #a linha começa no vertice 01 ou 02?
+fx_interesse = #largura da faixa de interesse
+bdgis = # insira o endereço do banco de dados GIS
+temas_extra = #multiple values (separados por vírgula) de temas que não estão no banco de dados GIS
+gdb_path = #caminho do geodatabase final, que terá os temas que estão no banco de dados GIS
+pasta_quantitativo = #pasta onde serão salvos os arquivos excel
+divisao_estadual = ''
 arcpy.env.workspace = gdb_path
 feature_datasets = arcpy.ListDatasets()
 if 'Quantitativo' not in feature_datasets:
@@ -21,7 +23,6 @@ if 'Quantitativo' not in feature_datasets:
 else:
     pass
 gdb_quantitativo = os.path.join(gdb_path, 'Quantitativo')
-
 
 def project(gdb):
     arcpy.env.workspace = gdb
@@ -35,7 +36,10 @@ def project(gdb):
     if temas_extra != '':
         feature_classes.append(temas_extra)
     for fc in feature_classes:
+        #intersect entre a fc e a divisão estadual
+        fc = arcpy.analysis.Intersect(in_features=[fc, divisao_estadual], out_feature_class=fr'div_estado_{fc}')
         arcpy.FeatureClassToFeatureClass_conversion(fc, os.path.join(gdb, 'Temas'), fc)
+
 
 def determine_feature_type(fc):
     if arcpy.Describe(fc).shapeType == 'Point':
@@ -87,15 +91,21 @@ def ltxfeature(fc, lt):
             output = arcpy.analysis.Intersect(in_features=[lt, dissolved_fc], out_feature_class=os.path.join(gdb_quantitativo,'LT_x_'+filename), output_type='LINE')
             arcpy.AddField_management(output, 'Area', 'FLOAT')
             arcpy.CalculateField_management(output, 'Extensao', '!shape.length@kilometers!', 'PYTHON')
-    elif not "Vertice" in fields(fc):
+    elif "Vertice" not in fields(fc):
         if arcpy.Describe(fc).shapeType == 'Polyline':
-            lt=arcpy.management.Dissolve(in_features=lt, out_feature_class='dissolved_lt')
+            if circuito_duplo != '':
+                lt=arcpy.management.Dissolve(in_features=lt, out_feature_class='dissolved_lt',dissolve_field=circuito_duplo)
+            else:
+                lt=arcpy.management.Dissolve(in_features=lt, out_feature_class='dissolved_lt')
             output = arcpy.analysis.Intersect(in_features=[lt, dissolved_fc], out_feature_class=os.path.join(gdb_quantitativo,'LT_x_'+filename), output_type='POINT')
             arcpy.AddField_management(output, 'Eixo_X', 'FLOAT')
             arcpy.CalculateField_management(output, 'Eixo_X', '!shape.firstPoint.X!', 'PYTHON')
             arcpy.CalculateField_management(output, 'Eixo_Y', '!shape.firstPoint.Y!', 'PYTHON')
         elif arcpy.Describe(fc).shapeType == 'Polygon':
-            lt=arcpy.management.Dissolve(in_features=lt, out_feature_class='dissolved_lt')
+            if circuito_duplo != '':
+                lt=arcpy.management.Dissolve(in_features=lt, out_feature_class='dissolved_lt',dissolve_field=circuito_duplo)
+            else:
+                lt=arcpy.management.Dissolve(in_features=lt, out_feature_class='dissolved_lt')
             output = arcpy.analysis.Intersect(in_features=[lt, dissolved_fc], out_feature_class=os.path.join(gdb_quantitativo,'LT_x_'+filename), output_type='LINE')
             arcpy.AddField_management(output, 'Area', 'FLOAT')
             arcpy.CalculateField_management(output, 'Extensao', '!shape.length@kilometers!', 'PYTHON')
@@ -113,18 +123,23 @@ def fxinteressexfeature(fc, fx_interesse):
             output = arcpy.Intersect_analysis([fx_interesse, dissolved_fc], os.path.join(gdb_quantitativo,'FxInteresse_x_'+filename))
             arcpy.AddField_management(output, 'Area', 'FLOAT')
             arcpy.CalculateField_management(output, 'Area', '!shape.area@hectares!', 'PYTHON')
-    elif not "Vertice" in fields(fc):
+    elif "Vertice" not in fields(fc):
         if arcpy.Describe(fc).shapeType == 'Polyline':
-            fx_interesse=arcpy.management.Dissolve(in_features=fx_interesse, out_feature_class='dissolved_fx')
+            if circuito_duplo != '':
+                fx_interesse=arcpy.management.Dissolve(in_features=fx_interesse, out_feature_class='dissolved_fx',dissolve_field=circuito_duplo)
+            elif circuito_duplo == '':
+                fx_interesse=arcpy.management.Dissolve(in_features=fx_interesse, out_feature_class='dissolved_fx')
             output = arcpy.Intersect_analysis([fx_interesse, dissolved_fc], os.path.join(gdb_quantitativo,'FxInteresse_x_'+filename))
             arcpy.AddField_management(output, 'Extensao', 'FLOAT')
             arcpy.CalculateField_management(output, 'Extensao', '!shape.length@kilometers!', 'PYTHON')
         elif arcpy.Describe(fc).shapeType == 'Polygon':
-            fx_interesse=arcpy.management.Dissolve(in_features=fx_interesse, out_feature_class='dissolved_fx')
+            if circuito_duplo != '':
+                fx_interesse=arcpy.management.Dissolve(in_features=fx_interesse, out_feature_class='dissolved_fx',dissolve_field=circuito_duplo)
+            elif circuito_duplo == '':
+                fx_interesse=arcpy.management.Dissolve(in_features=fx_interesse, out_feature_class='dissolved_fx')
             output = arcpy.Intersect_analysis([fx_interesse, dissolved_fc], os.path.join(gdb_quantitativo,'FxInteresse_x_'+filename))
             arcpy.AddField_management(output, 'Area', 'FLOAT')
             arcpy.CalculateField_management(output, 'Area', '!shape.area@hectares!', 'PYTHON')
-        
 
 def ltnearfeature(fc,buffer):
     dissolved_fc = dissolve(fc)
@@ -143,7 +158,7 @@ def ltnearfeature(fc,buffer):
         else:
             return ' '"""
     arcpy.management.CalculateField(in_table=output, field='OBS', expression='neardist(!NEAR_DIST!)', code_block=expression)
-#FUNCOES DE ATRIBUTOS  #####NOTA, ADICIONAR A FIELD DO NEAR_DIST na lista de fields to keep
+
 def toexcel(fc):
     #EXCEL
     campos_selecionados = fields(fc)
@@ -161,8 +176,14 @@ def toexcel(fc):
     # Salvar o dataframe em um arquivo Excel
     df.to_excel(os.path.join(pasta_quantitativo, os.path.basename(fr"{fc}.xlsx")), index=False)
    
-result_dict = gdb_to_dict(gdb_path)
 
+
+project(gdb_path)
+
+
+
+
+result_dict = gdb_to_dict(gdb_path)
 for key, value in result_dict.items():
     print(f'Nome: {value["nome"]}, Tipo: {value["tipo"]}')
     if value["tipo"] == "Poligono":
