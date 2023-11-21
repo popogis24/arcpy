@@ -23,21 +23,18 @@ gdb_quantitativo = os.path.join(gdb_path, 'Quantitativo')
 
 
 def project(gdb):
-
-    #list feature classes do gdb_path
+    arcpy.env.workspace = gdb
+    feature_datasets = arcpy.ListDatasets()
+    if 'Temas' not in feature_datasets:
+        arcpy.CreateFeatureDataset_management(gdb, 'Temas', arcpy.Describe(lt).spatialReference)
+    else:
+        pass
     arcpy.env.workspace = bdgis
     feature_classes = arcpy.ListFeatureClasses()
-    #append temas_extra na lista de feature classes, se existir algum tema extra
     if temas_extra != '':
         feature_classes.append(temas_extra)
-    #cria um novo feature dataset no gdb_path, mas faça ele ter o mesmo sistema de projeção da LT
-    try:
-        arcpy.CreateFeatureDataset_management(gdb, 'Temas', arcpy.Describe(lt).spatialReference)
-    except:
-        pass
     for fc in feature_classes:
         arcpy.FeatureClassToFeatureClass_conversion(fc, os.path.join(gdb, 'Temas'), fc)
-
 
 def determine_feature_type(desc):
     if desc.shapeType == 'Point':
