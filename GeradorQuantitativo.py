@@ -7,16 +7,15 @@ arcpy.env.overwriteOutput = True
 arcpy.env.addOutputsToMap = False
 
 
-lt_inteira = #linha de transmissão previa
-circuito_duplo: #insira a coluna que divide os circuitos
-vert_inicial = #a linha começa no vertice 01 ou 02?
-fx_interesse = #largura da faixa de interesse
-bdgis = # insira o endereço do banco de dados GIS
-temas_extra = #multiple values (separados por vírgula) de temas que não estão no banco de dados GIS
-gdb_path = #caminho do geodatabase final, que terá os temas que estão no banco de dados GIS
-pasta_quantitativo = #pasta onde serão salvos os arquivos excel
-divisao_estadual = ''
-divisao_municipal = ''
+lt_inteira = arcpy.GetParameterAsText(0)#linha de transmissão previa
+circuito_duplo: arcpy.GetParameterAsText(0)#insira a coluna que divide os circuitos
+vert_inicial = arcpy.GetParameterAsText(0)#a linha começa no vertice 01 ou 02?
+fx_interesse = arcpy.GetParameterAsText(0)#largura da faixa de interesse
+bdgis = arcpy.GetParameterAsText(0)#insira o endereço do banco de dados GIS
+temas_extra = arcpy.GetParameterAsText(0)#multiple values (separados por vírgula) de temas que não estão no banco de dados GIS
+gdb_path = arcpy.GetParameterAsText(0)#caminho do geodatabase final, que terá os temas que estão no banco de dados GIS
+pasta_quantitativo = arcpy.GetParameterAsText(0)#pasta onde serão salvos os arquivos excel
+divisao_estadual = r'R:\09-Banco_De_Dados_Geografico\02-Geral\BancoDeDadosGeografico\Brasil.gdb\Divisao_Politica\BR_UF_2022'
 arcpy.env.workspace = gdb_path
 feature_datasets = arcpy.ListDatasets()
 if 'Quantitativo' not in feature_datasets:
