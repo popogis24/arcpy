@@ -201,26 +201,62 @@ def dissolve(fc):
         fields_interesse.extend(['NOME';'RIO';'potencia';'ceg'])
     elif filename == 'CGH__Expansão_Planejada_EPE':
         fields_interesse.extend(['NOME';'RIO';'potencia';'ceg'])
-    elif filename == 'Declividade_Caruso':
-        fields_interesse.extend(['Classes'])
-    elif filename == 'Dutovias_Gas_Oleo_Minerio_ANP'
+    elif filename == 'Dutovias_Gas_Oleo_Minerio_ANP':
         fields_interesse.extend(['name'])
     else:
         pass
     output = arcpy.Dissolve_management(fc, "fcdissolved", fields_interesse) 
-    return output
+    return output, fields_interesse
 
 def fields(fc):
     filename = os.path.basename(fc)
     fields_to_keep = []
     #caso o tema esteja nessa lista, ele
-    
-
-
+    if filename == 'Adutoras_SNIRH_ANA_2021':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
+    elif filename == 'Aerodromos_ANAC':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
+    elif filename == 'Aerogeradores_ANEEL_2023':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
+    elif filename == 'Aproveitamento_Hidreletricos_AHE_ANEEL':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
+    elif filename == 'Area_Imoveis_Rurais_SICAR_2023':
+        fields_to_keep = dissolve(fc)[1]+['']
+    elif filename == 'Areas_Quilombolas_INCRA':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
+    elif filename == 'Areas_Urbanizadas_IBGE_2019':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
+    elif filename == 'Assentamentos_INCRA':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
+    elif filename == 'Aves_Migratorias_AI_Riqueza_CEMAVE_2019':
+        fields_to_keep = dissolve(fc)[1]+['']
+    elif filename == 'Aves_Migratorias_Areas_Ameacadas_CEMAVE_2022':
+        fields_to_keep = dissolve(fc)[1]+['']
+    elif filename == 'Aves_Migratorias_Areas_Concentracao_CEMAVE_2022':
+        fields_to_keep = dissolve(fc)[1]+['']
+    elif filename == 'Blocos_Disponiveis_OPC_1009_ANP':
+        fields_to_keep = dissolve(fc)[1]+['UF','Vertices']
+    elif filename == 'Bases_de_Combustíveis_EPE':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
+    elif filename == 'Bases_de_GLP_EPE':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
+    elif filename == 'Biomas_IBGE_2019_250000':
+        fields_to_keep = dissolve(fc)[1]+['UF','Vertices']
+    elif filename == 'Cavidades_CANIE_19122022':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
+    elif filename == 'Centrais_Geradoras_Hidrelétricas_CGH_ANEEL':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
+    elif filename == 'Conservacao_Aves_IBAS':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
+    elif filename == 'CGH__Base_Existente_EPE':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
+    elif filename == 'CGH__Expansão_Planejada_EPE':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
+    elif filename == 'Dutovias_Gas_Oleo_Minerio_ANP':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
     elif filename in temas_extra:
         listfields = arcpy.ListFields(filename)
-        fields_to_keep.extend(listfields;'UF') ###em andamento, voltar pra isso depois
-
+        fields_to_keep = listfields + ['ABCDE'] ###em andamento, voltar pra isso depois
 
     return fields_to_keep
 
@@ -345,42 +381,18 @@ fx_interesse = vao[1]
 
 project(gdb_path)
 
-result_dict = gdb_to_dict(os.path.join(gdb_path, 'Temas'))
+arcpy.env.workspace = os.path.join(gdb_path, 'Temas')
+temas = arcpy.ListFeatureClasses()
 
-for key, value in result_dict.items():
-        if value["nome"] == "Unidade de Conservação":
-            ltnearfeature(os.path.join(gdb_path, value["nome"]), '50000')
-        elif value["nome"] <> "Unidade de Conservação" and value["nome"]:
-            ltnearfeature(os.path.join(gdb_path, value["nome"]), '10000')
-        ltxfeature(os.path.join(gdb_path,'temas', value["nome"]), lt)
-        fxinteressexfeature(os.path.join(gdb_path,'temas', value["nome"]),fx_interesse)
-
-
-
+for tema in temas():
+        if tema == "Unidade de Conservação":
+            ltnearfeature(os.path.join(gdb_path, tema), '50000')
+        elif 'Distancia' in fields(tema):
+            ltnearfeature(os.path.join(gdb_path, tema), '10000')
+        ltxfeature(os.path.join(gdb_path,'temas', tema), lt)
+        fxinteressexfeature(os.path.join(gdb_path,'temas', tema),fx_interesse)
 
 
 
 
-'''
-def gdb_to_dict(gdb):
-    arcpy.env.workspace = gdb
-    feature_classes = arcpy.ListFeatureClasses()
-    feature_class_dict = {}
-    for fc in feature_classes:
-        desc = arcpy.Describe(fc)
-        feature_class_dict[fc] = {"nome": desc.name, "tipo": determine_feature_type(desc)}
-    return feature_class_dict
 
-def determine_feature_type(fc):
-    if arcpy.Describe(fc).shapeType == 'Point'or arcpy.Describe(fc).shapeType == 'Multipoint':
-        return 'Ponto'
-    elif arcpy.Describe(fc).shapeType == 'Polyline' or arcpy.Describe(fc).shapeType == 'PolylineM' or arcpy.Describe(fc).shapeType == 'PolylineZ':
-        return 'Linha'
-    elif arcpy.Describe(fc).shapeType == 'Polygon' or arcpy.Describe(fc).shapeType == 'PolygonM' or arcpy.Describe(fc).shapeType == 'PolygonZ':
-        return 'Poligono'
-    else:
-        return EOFError
-
-        
-
-    '''
