@@ -163,7 +163,7 @@ def dissolve(fc):
     filename = os.path.basename(fc)
     if filename == 'Adutoras_SNIRH_ANA_2021':
         fields_interesse.extend(['ADUTORA','SITUAÇÃO'])
-    elif filename == 'Aerodromos_ANAC':
+    elif filename == 'Aerodromos_ANAC_2022':
         fields_interesse.extend(['Código_OAC','CIAD','Nome'])
     elif filename == 'Aerogeradores_ANEEL_2023':
         fields_interesse.extend(['NOME_EOL','DEN_AEG','POT_MW','CEG','OPERACAO'])
@@ -216,7 +216,7 @@ def fields(fc):
     #caso o tema esteja nessa lista, ele
     if filename == 'Adutoras_SNIRH_ANA_2021':
         fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
-    elif filename == 'Aerodromos_ANAC':
+    elif filename == 'Aerodromos_ANAC_2022':
         fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
     elif filename == 'Aerogeradores_ANEEL_2023':
         fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
@@ -380,8 +380,11 @@ def toexcel(fc):
 vao = criavao(lt_inteira, fx_interesse)
 lt = vao[0]
 fx_interesse = vao[1]
-
-project(gdb_path)
+atualizar = arcpy.GetParameterAsText(9)
+if atualizar == 'true':
+    project(gdb_path)
+else:
+    pass
 
 arcpy.env.workspace = os.path.join(gdb_path, 'Temas')
 temas = arcpy.ListFeatureClasses()
