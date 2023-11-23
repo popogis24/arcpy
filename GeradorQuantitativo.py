@@ -8,18 +8,19 @@ arcpy.env.addOutputsToMap = False
 
 
 lt_inteira = arcpy.GetParameterAsText(0)#linha de transmissão previa
-circuito_duplo: arcpy.GetParameterAsText(0)#insira a coluna que divide os circuitos
-vert_inicial = arcpy.GetParameterAsText(0)#a linha começa no vertice 01 ou 02?
-fx_interesse = arcpy.GetParameterAsText(0)#largura da faixa de interesse
-bdgis = arcpy.GetParameterAsText(0)#insira o endereço do banco de dados GIS
-temas_extra = arcpy.GetParameterAsText(0)#multiple values (separados por vírgula) de temas que não estão no banco de dados GIS
-gdb_path = arcpy.GetParameterAsText(0)#caminho do geodatabase final, que terá os temas que estão no banco de dados GIS
-pasta_quantitativo = arcpy.GetParameterAsText(0)#pasta onde serão salvos os arquivos excel
+circuito_duplo: arcpy.GetParameterAsText(1)#insira a coluna que divide os circuitos
+vert_inicial = arcpy.GetParameterAsText(2)#a linha começa no vertice 01 ou 02?
+fx_interesse = arcpy.GetParameterAsText(3)#largura da faixa de interesse
+bdgis = arcpy.GetParameterAsText(4)#insira o endereço do banco de dados GIS
+temas_extra = arcpy.GetParameterAsText(5)#multiple values (separados por vírgula) de temas que não estão no banco de dados GIS
+fields_extras = arcpy.GetParameterAsText(6)#multiple values (separados por vírgula) de campos extras que não estão no banco de dados GIS
+gdb_path = arcpy.GetParameterAsText(7)#caminho do geodatabase final, que terá os temas que estão no banco de dados GIS
+pasta_quantitativo = arcpy.GetParameterAsText(8)#pasta onde serão salvos os arquivos excel
 divisao_estadual = r'R:\09-Banco_De_Dados_Geografico\02-Geral\BancoDeDadosGeografico\Brasil.gdb\Divisao_Politica\BR_UF_2022'
 arcpy.env.workspace = gdb_path
 feature_datasets = arcpy.ListDatasets()
 if 'Quantitativo' not in feature_datasets:
-    arcpy.CreateFeatureDataset_management(gdb_path, 'Quantitativo', arcpy.Describe(lt).spatialReference)
+    arcpy.CreateFeatureDataset_management(gdb_path, 'Quantitativo', arcpy.Describe(lt_inteira).spatialReference)
 else:
     pass
 gdb_quantitativo = os.path.join(gdb_path, 'Quantitativo')
@@ -161,45 +162,47 @@ def dissolve(fc):
     fields_interesse = []
     filename = os.path.basename(fc)
     if filename == 'Adutoras_SNIRH_ANA_2021':
-        fields_interesse.extend(['ADUTORA';'SITUAÇÃO'])
+        fields_interesse.extend(['ADUTORA','SITUAÇÃO'])
     elif filename == 'Aerodromos_ANAC':
-        fields_interesse.extend(['Código_OAC';'CIAD';'Nome'])
+        fields_interesse.extend(['Código_OAC','CIAD','Nome'])
     elif filename == 'Aerogeradores_ANEEL_2023':
-        fields_interesse.extend(['NOME_EOL';'DEN_AEG';'POT_MW';'CEG';'OPERACAO'])
+        fields_interesse.extend(['NOME_EOL','DEN_AEG','POT_MW','CEG','OPERACAO'])
     elif filename == 'Aproveitamento_Hidreletricos_AHE_ANEEL':
-        fields_interesse.extend(['NOME';'MUNIC_1';'UF_1';'RIO';'ATO_LEGAL';'TIPO_AHE';'FASE';'Menor_Distancia'])
+        fields_interesse.extend(['NOME','MUNIC_1','UF_1','RIO','ATO_LEGAL','TIPO_AHE','FASE','Menor_Distancia'])
     elif filename == 'Area_Imoveis_Rurais_SICAR_2023':
-        fields_interesse.extend(['COD_IMOVEL';'NUM_AREA';'COD_ESTADO';'SITUACAO';'CONDICAO_I';'NOM_MUNICI';'TIPO_IMOVE'])
+        fields_interesse.extend(['COD_IMOVEL','NUM_AREA','COD_ESTADO','SITUACAO','CONDICAO_I','NOM_MUNICI','TIPO_IMOVE'])
     elif filename == 'Areas_Quilombolas_INCRA':
-        fields_interesse.extend(['nr_process';'nm_comunid';'nm_municip';'cd_uf'])
+        fields_interesse.extend(['nr_process','nm_comunid','nm_municip','cd_uf'])
     elif filename == 'Areas_Urbanizadas_IBGE_2019':
-        fields_interesse.extend(['Densidade';'Tipo';'Menor_Distancia';'Vertices';'UF'])
+        fields_interesse.extend(['Densidade','Tipo','Menor_Distancia','Vertices','UF'])
     elif filename == 'Assentamentos_INCRA':
-        fields_interesse.extend(['cd_sipra';'nome_proje';'municipio';'area_hecta';'capacidade';'num_famili'])
+        fields_interesse.extend(['cd_sipra','nome_proje','municipio','area_hecta','capacidade','num_famili'])
     elif filename == 'Aves_Migratorias_AI_Riqueza_CEMAVE_2019':
-        fields_interesse.extend([]):
+        fields_interesse.extend([])
     elif filename == 'Aves_Migratorias_Areas_Ameacadas_CEMAVE_2022':
-        fields_interesse.extend(['name']):
+        fields_interesse.extend(['name'])
     elif filename == 'Aves_Migratorias_Areas_Concentracao_CEMAVE_2022':
-        fields_interesse.extend(['Critério';'name'])
+        fields_interesse.extend(['Critério','name'])
     elif filename == 'Blocos_Disponiveis_OPC_1009_ANP':
-        fields_interesse.extend(['nome_bacia';'nomenclatu';'situacao_b';'nome_setor';'indice_blo';'AreaANP'])
+        fields_interesse.extend(['nome_bacia','nomenclatu','situacao_b','nome_setor','indice_blo','AreaANP'])
     elif filename == 'Bases_de_Combustíveis_EPE':
-        fields_interesse.extend(['nome_base';'munic';'uf'])
+        fields_interesse.extend(['nome_base','munic','uf'])
     elif filename == 'Bases_de_GLP_EPE':
-        fields_interesse.extend(['nome_base';'munic';'uf'])
+        fields_interesse.extend(['nome_base','munic','uf'])
     elif filename == 'Biomas_IBGE_2019_250000':
         fields_interesse.extend(['Bioma'])
     elif filename == 'Cavidades_CANIE_19122022':
-        fields_interesse.extend(['Registro_N';'Caverna';'Municipio';'UF';'Localidade'])
+        fields_interesse.extend(['Registro_N','Caverna','Municipio','UF','Localidade'])
     elif filename == 'Centrais_Geradoras_Hidrelétricas_CGH_ANEEL':
-        fields_interesse.extend(['NOME';'MUNIC_1';'UF_1';'RIO';'ATO_LEGAL';'TIPO_AHE'])
+        fields_interesse.extend(['NOME','MUNIC_1','UF_1','RIO','ATO_LEGAL','TIPO_AHE'])
     elif filename == 'Conservacao_Aves_IBAS':
-        fields_interesse.extend(['Código';'Nome_1';'Bioma'])
+        fields_interesse.extend(['Código','Nome_1','Bioma'])
     elif filename == 'CGH__Base_Existente_EPE':
-        fields_interesse.extend(['NOME';'RIO';'potencia';'ceg'])
+        fields_interesse.extend(['NOME','RIO','potencia','ceg'])
     elif filename == 'CGH__Expansão_Planejada_EPE':
-        fields_interesse.extend(['NOME';'RIO';'potencia';'ceg'])
+        fields_interesse.extend(['NOME','RIO','potencia','ceg'])
+    elif filename == 'Declividade_Caruso':
+        fields_interesse.extend(['Classes'])
     elif filename == 'Dutovias_Gas_Oleo_Minerio_ANP':
         fields_interesse.extend(['name'])
     else:
@@ -383,13 +386,13 @@ project(gdb_path)
 arcpy.env.workspace = os.path.join(gdb_path, 'Temas')
 temas = arcpy.ListFeatureClasses()
 
-for tema in temas():
-        if tema == "Unidade de Conservação":
-            ltnearfeature(os.path.join(gdb_path, tema), '50000')
-        elif 'Distancia' in fields(tema):
-            ltnearfeature(os.path.join(gdb_path, tema), '10000')
-        ltxfeature(os.path.join(gdb_path,'temas', tema), lt)
-        fxinteressexfeature(os.path.join(gdb_path,'temas', tema),fx_interesse)
+for tema in temas:
+    if tema == "Unidade de Conservação":
+        ltnearfeature(os.path.join(gdb_path, tema), '50000')
+    elif 'Distancia' in fields(tema):
+        ltnearfeature(os.path.join(gdb_path, tema), '10000')
+    ltxfeature(os.path.join(gdb_path,'temas', tema), lt)
+    fxinteressexfeature(os.path.join(gdb_path,'temas', tema),fx_interesse)
 
 
 
