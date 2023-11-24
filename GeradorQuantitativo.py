@@ -267,7 +267,6 @@ def fields(fc):
 
 def ltxfeature(fc, lt):
     dissolved_fc = dissolve(fc)[0]
-    #dissolved_fc = arcpy.CopyFeatures_management(fc, r'in_memory\fc')
     filename = os.path.basename(fc)
     if "Vertices" in fields(fc):
         if arcpy.Describe(fc).shapeType == 'Polyline' or arcpy.Describe(fc).shapeType == 'PolylineM' or arcpy.Describe(fc).shapeType == 'PolylineZ':         
@@ -299,8 +298,7 @@ def ltxfeature(fc, lt):
             arcpy.CalculateField_management(output, 'Extensao', '!shape.length@kilometers!', 'PYTHON')
 
 def fxinteressexfeature(fc, fx_interesse):
-    dissolved_fc = dissolve(fc)
-    #dissolved_fc = arcpy.CopyFeatures_management(fc, r'in_memory\fc')
+    dissolved_fc = dissolve(fc)[0]
     filename = os.path.basename(fc)
     if "Vertices" in fields(fc):
         if arcpy.Describe(fc).shapeType == 'Polyline' or arcpy.Describe(fc).shapeType == 'PolylineM' or arcpy.Describe(fc).shapeType == 'PolylineZ':
@@ -329,9 +327,8 @@ def fxinteressexfeature(fc, fx_interesse):
             arcpy.AddField_management(output, 'Area', 'FLOAT')
             arcpy.CalculateField_management(output, 'Area', '!shape.area@hectares!', 'PYTHON')
 
-def ltnearfeature(fc,buffer):
-    dissolved_fc = dissolve(fc)
-    #dissolved_fc = arcpy.CopyFeatures_management(fc, r'in_memory\fc')
+def ltnearfeature(fc,buffer,lt):
+    dissolved_fc = dissolve(fc)[0]
     arcpy.analysis.Near(in_features=dissolved_fc, near_features=lt, search_radius=buffer)
     expression = "round(!NEAR_DIST! / 1000.0, 2)"
     arcpy.CalculateField_management(dissolved_fc, 'Distancia', expression, "PYTHON")
@@ -403,9 +400,9 @@ for tema in temas:
     arcpy.AddMessage(f'Processando {tema} ({temas.index(tema)+1} de {count})')
     # Check if the feature class is "Unidade de Conservação"
     if tema == "Unidade de Conservação":
-        ltnearfeature(os.path.join(gdb_path, 'Temas', tema), '50000')
+        ltnearfeature(os.path.join(gdb_path, 'Temas', tema), '50000', lt)
     elif 'Distancia' in fields(tema):
-        ltnearfeature(os.path.join(gdb_path, 'Temas', tema), '10000')
+        ltnearfeature(os.path.join(gdb_path, 'Temas', tema), '10000', lt)
     
     # Call ltxfeature and fxinteressexfeature functions
     ltxfeature(os.path.join(gdb_path, 'Temas', tema), lt)
