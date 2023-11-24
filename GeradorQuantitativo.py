@@ -8,7 +8,7 @@ arcpy.env.addOutputsToMap = False
 
 
 lt_inteira = arcpy.GetParameterAsText(0)#linha de transmissão previa
-circuito_duplo: arcpy.GetParameterAsText(1)#insira a coluna que divide os circuitos
+circuito_duplo = arcpy.GetParameterAsText(1)#insira a coluna que divide os circuitos
 vert_inicial = arcpy.GetParameterAsText(2)#a linha começa no vertice 01 ou 02?
 fx_interesse = arcpy.GetParameterAsText(3)#largura da faixa de interesse
 bdgis = arcpy.GetParameterAsText(4)#insira o endereço do banco de dados GIS
@@ -16,9 +16,13 @@ temas_extra = arcpy.GetParameterAsText(5)#multiple values (separados por vírgul
 fields_extras = arcpy.GetParameterAsText(6)#multiple values (separados por vírgula) de campos extras que não estão no banco de dados GIS
 gdb_path = arcpy.GetParameterAsText(7)#caminho do geodatabase final, que terá os temas que estão no banco de dados GIS
 pasta_quantitativo = arcpy.GetParameterAsText(8)#pasta onde serão salvos os arquivos excel
-divisao_estadual = r'R:\09-Banco_De_Dados_Geografico\02-Geral\BancoDeDadosGeografico\Brasil.gdb\Divisao_Politica\BR_UF_2022'
+atualizar = arcpy.GetParameterAsText(9)
+atualizar_vao = arcpy.GetParameterAsText(10)
+junkspace = arcpy.GetParameterAsText(11)
+divisao_estadual = r'C:\Users\anderson.souza\Downloads\BR_UF_2022\BR_UF_2022.shp'
 arcpy.env.workspace = gdb_path
 feature_datasets = arcpy.ListDatasets()
+
 if 'Quantitativo' not in feature_datasets:
     arcpy.CreateFeatureDataset_management(gdb_path, 'Quantitativo', arcpy.Describe(lt_inteira).spatialReference)
 else:
@@ -26,7 +30,7 @@ else:
 gdb_quantitativo = os.path.join(gdb_path, 'Quantitativo')
 
 
-def criavao(shape_lt, fx_interesse):
+def criavao(shape_lt, fx_interesse,vert_inicial):
     # Split at Vertices
     output_split = r'in_memory\"SplitVertices"'
     arcpy.SplitLine_management(shape_lt, output_split)
@@ -34,10 +38,13 @@ def criavao(shape_lt, fx_interesse):
     # Criar novo campo "Sequencial"
     campo_sequencial = 'Sequencial'
     arcpy.management.AddField(output_split, campo_sequencial, 'LONG')
-
+    if vert_inicial == 'Inicia no Vértice 0':
+        vert_inicial = 0
+    elif vert_inicial == 'Inicia no Vértice 1':
+        vert_inicial = 1
     # Enumerar os registros sequencialmente
     with arcpy.da.UpdateCursor(output_split, campo_sequencial) as cursor:
-        for i, row in enumerate(cursor):
+        for i, row in enumerate(cursor,start=vert_inicial):
             row[0] = i
             cursor.updateRow(row)
 
@@ -65,7 +72,7 @@ def criavao(shape_lt, fx_interesse):
         output_diretriz_gerada = arcpy.CopyFeatures_management(output_split, os.path.join(gdb_path,'Dados_Caruso','Vao_LT'))
 
     #largura da faixa de servidao em metros
-    fs_distancia = fx_interesse 
+    fs_distancia = str(float(fx_interesse)/2)
 
     # Caminho completo para o arquivo shapefile do buffer
     output_buffer_saida = r'in_memory\"faixa_servidao_buffer"'
@@ -137,15 +144,14 @@ def criavao(shape_lt, fx_interesse):
         #delete feature class
         arcpy.management.Delete(os.path.join(gdb_path,'Dados_Caruso','Vao_FxInteresse'))
         output_faixa_servidao = arcpy.CopyFeatures_management(no_over, os.path.join(gdb_path,'Dados_Caruso','Vao_FxInteresse'))
+    arcpy.AddMessage('LT e Faixa de Interesse segmentadas geradas com sucesso')
     return output_diretriz_gerada, output_faixa_servidao
 
-def project(gdb):
+def project(gdb,temas_extra):
     arcpy.env.workspace = gdb
     feature_datasets = arcpy.ListDatasets()
     if 'Temas' not in feature_datasets:
-        arcpy.CreateFeatureDataset_management(gdb, 'Temas', arcpy.Describe(lt).spatialReference)
-    else:
-        pass
+        arcpy.CreateFeatureDataset_management(gdb, 'Temas', arcpy.Describe(lt_inteira).spatialReference)
     arcpy.env.workspace = bdgis
     feature_classes = arcpy.ListFeatureClasses()
     if temas_extra != '':
@@ -153,18 +159,18 @@ def project(gdb):
     for fc in feature_classes:
         #intersect entre a fc e a divisão estadual
         if 'UF' in fields(fc):
-            fc_intersect = arcpy.analysis.Intersect(in_features=[fc, divisao_estadual], out_feature_class=fr'div_estado_{fc}')
-            arcpy.FeatureClassToFeatureClass_conversion(fc_intersect, os.path.join(gdb, 'Temas', fc))
+            fc_intersect = arcpy.analysis.Intersect(in_features=[fc, divisao_estadual], out_feature_class=os.path.join(junkspace,fr'div_{fc}'))
+            arcpy.conversion.FeatureClassToFeatureClass(fc_intersect, os.path.join(gdb, 'Temas'),fc)
         elif 'UF' not in fields(fc):
-            arcpy.FeatureClassToFeatureClass_conversion(fc, os.path.join(gdb, 'Temas', fc))
-    
+            arcpy.conversion.FeatureClassToFeatureClass(fc, os.path.join(gdb, 'Temas'),fc)
+    arcpy.AddMessage('Temas adicionados ao geodatabase local')
 def dissolve(fc):
     fields_interesse = []
     filename = os.path.basename(fc)
     if filename == 'Adutoras_SNIRH_ANA_2021':
         fields_interesse.extend(['ADUTORA','SITUAÇÃO'])
     elif filename == 'Aerodromos_ANAC_2022':
-        fields_interesse.extend(['Código_OAC','CIAD','Nome'])
+        fields_interesse.extend(['Codigo_OAC','CIAD'])
     elif filename == 'Aerogeradores_ANEEL_2023':
         fields_interesse.extend(['NOME_EOL','DEN_AEG','POT_MW','CEG','OPERACAO'])
     elif filename == 'Aproveitamento_Hidreletricos_AHE_ANEEL':
@@ -178,9 +184,9 @@ def dissolve(fc):
     elif filename == 'Assentamentos_INCRA':
         fields_interesse.extend(['cd_sipra','nome_proje','municipio','area_hecta','capacidade','num_famili'])
     elif filename == 'Aves_Migratorias_AI_Riqueza_CEMAVE_2019':
-        fields_interesse.extend([])
+        fields_interesse=[]
     elif filename == 'Aves_Migratorias_Areas_Ameacadas_CEMAVE_2022':
-        fields_interesse.extend(['name'])
+        fields_interesse=[]
     elif filename == 'Aves_Migratorias_Areas_Concentracao_CEMAVE_2022':
         fields_interesse.extend(['Critério','name'])
     elif filename == 'Blocos_Disponiveis_OPC_1009_ANP':
@@ -201,13 +207,10 @@ def dissolve(fc):
         fields_interesse.extend(['NOME','RIO','potencia','ceg'])
     elif filename == 'CGH__Expansão_Planejada_EPE':
         fields_interesse.extend(['NOME','RIO','potencia','ceg'])
-    elif filename == 'Declividade_Caruso':
-        fields_interesse.extend(['Classes'])
     elif filename == 'Dutovias_Gas_Oleo_Minerio_ANP':
         fields_interesse.extend(['name'])
-    else:
-        pass
-    output = arcpy.Dissolve_management(fc, "fcdissolved", fields_interesse) 
+
+    output = arcpy.Dissolve_management(fc, os.path.join(junkspace,fr"{fc}_dissolved"), fields_interesse)
     return output, fields_interesse
 
 def fields(fc):
@@ -231,11 +234,11 @@ def fields(fc):
     elif filename == 'Assentamentos_INCRA':
         fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
     elif filename == 'Aves_Migratorias_AI_Riqueza_CEMAVE_2019':
-        fields_to_keep = dissolve(fc)[1]+['']
+        fields_to_keep = dissolve(fc)[1]+['UF']
     elif filename == 'Aves_Migratorias_Areas_Ameacadas_CEMAVE_2022':
-        fields_to_keep = dissolve(fc)[1]+['']
-    elif filename == 'Aves_Migratorias_Areas_Concentracao_CEMAVE_2022':
-        fields_to_keep = dissolve(fc)[1]+['']
+        fields_to_keep = dissolve(fc)[1]+['UF']
+    elif filename == 'Aves_Migratorias_Areas_Concentrcacao_CEMAVE_2022':
+        fields_to_keep = dissolve(fc)[1]+['UF']
     elif filename == 'Blocos_Disponiveis_OPC_1009_ANP':
         fields_to_keep = dissolve(fc)[1]+['UF','Vertices']
     elif filename == 'Bases_de_Combustíveis_EPE':
@@ -258,13 +261,13 @@ def fields(fc):
         fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
     elif filename in temas_extra:
         listfields = arcpy.ListFields(filename)
-        fields_to_keep = listfields + ['ABCDE'] ###em andamento, voltar pra isso depois
+        fields_to_keep = listfields + [] ###em andamento, voltar pra isso depois
 
     return fields_to_keep
 
 def ltxfeature(fc, lt):
-    dissolved_fc = dissolve(fc)
-    dissolved_fc = arcpy.CopyFeatures_management(fc, r'in_memory\fc')
+    dissolved_fc = dissolve(fc)[0]
+    #dissolved_fc = arcpy.CopyFeatures_management(fc, r'in_memory\fc')
     filename = os.path.basename(fc)
     if "Vertices" in fields(fc):
         if arcpy.Describe(fc).shapeType == 'Polyline' or arcpy.Describe(fc).shapeType == 'PolylineM' or arcpy.Describe(fc).shapeType == 'PolylineZ':         
@@ -297,7 +300,7 @@ def ltxfeature(fc, lt):
 
 def fxinteressexfeature(fc, fx_interesse):
     dissolved_fc = dissolve(fc)
-    dissolved_fc = arcpy.CopyFeatures_management(fc, r'in_memory\fc')
+    #dissolved_fc = arcpy.CopyFeatures_management(fc, r'in_memory\fc')
     filename = os.path.basename(fc)
     if "Vertices" in fields(fc):
         if arcpy.Describe(fc).shapeType == 'Polyline' or arcpy.Describe(fc).shapeType == 'PolylineM' or arcpy.Describe(fc).shapeType == 'PolylineZ':
@@ -328,7 +331,7 @@ def fxinteressexfeature(fc, fx_interesse):
 
 def ltnearfeature(fc,buffer):
     dissolved_fc = dissolve(fc)
-    dissolved_fc = arcpy.CopyFeatures_management(fc, r'in_memory\fc')
+    #dissolved_fc = arcpy.CopyFeatures_management(fc, r'in_memory\fc')
     arcpy.analysis.Near(in_features=dissolved_fc, near_features=lt, search_radius=buffer)
     expression = "round(!NEAR_DIST! / 1000.0, 2)"
     arcpy.CalculateField_management(dissolved_fc, 'Distancia', expression, "PYTHON")
@@ -374,29 +377,39 @@ def toexcel(fc):
     else:
         pass
     # Salvar o dataframe em um arquivo Excel
-    df.to_excel(os.path.join(pasta_quantitativo, os.path.basename(fr"{fc}.xlsx")), index=False)
-   
+    df.to_excel(os.path.join(pasta_quantitativo, os.path.basename(fr"{fc}.xlsx")), index=False) 
 
-vao = criavao(lt_inteira, fx_interesse)
-lt = vao[0]
-fx_interesse = vao[1]
-atualizar = arcpy.GetParameterAsText(9)
+
+if atualizar_vao == 'true':
+    vao = criavao(lt_inteira, fx_interesse, vert_inicial)
+    lt = vao[0]
+    fx_interesse = vao[1]
+else: 
+    lt = os.path.join(gdb_path, 'Dados_Caruso','Vao_LT')
+    fx_interesse = os.path.join(gdb_path, 'Dados_Caruso','Vao_FxInteresse')
+
 if atualizar == 'true':
-    project(gdb_path)
+    project(gdb_path, temas_extra)
 else:
     pass
 
 arcpy.env.workspace = os.path.join(gdb_path, 'Temas')
+
 temas = arcpy.ListFeatureClasses()
-
 for tema in temas:
+    #conta quantos temas tem na pasta Temas
+    count = len(temas)
+    #faz um add mensage com o andamento do processo
+    arcpy.AddMessage(f'Processando {tema} ({temas.index(tema)+1} de {count})')
+    # Check if the feature class is "Unidade de Conservação"
     if tema == "Unidade de Conservação":
-        ltnearfeature(os.path.join(gdb_path, tema), '50000')
+        ltnearfeature(os.path.join(gdb_path, 'Temas', tema), '50000')
     elif 'Distancia' in fields(tema):
-        ltnearfeature(os.path.join(gdb_path, tema), '10000')
-    ltxfeature(os.path.join(gdb_path,'temas', tema), lt)
-    fxinteressexfeature(os.path.join(gdb_path,'temas', tema),fx_interesse)
-
+        ltnearfeature(os.path.join(gdb_path, 'Temas', tema), '10000')
+    
+    # Call ltxfeature and fxinteressexfeature functions
+    ltxfeature(os.path.join(gdb_path, 'Temas', tema), lt)
+    fxinteressexfeature(os.path.join(gdb_path, 'Temas', tema), fx_interesse)
 
 
 
