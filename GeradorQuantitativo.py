@@ -28,6 +28,10 @@ if 'Quantitativo' not in feature_datasets:
 else:
     pass
 gdb_quantitativo = os.path.join(gdb_path, 'Quantitativo')
+#verifica se a pasta junkspace esta vazia, se não estiver, deleta tudo
+if os.listdir(junkspace) != []:
+    for file in os.listdir(junkspace):
+        os.remove(os.path.join(junkspace, file))
 
 
 def criavao(shape_lt, fx_interesse,vert_inicial):
@@ -164,104 +168,51 @@ def project(gdb,temas_extra):
         elif 'UF' not in fields(fc):
             arcpy.conversion.FeatureClassToFeatureClass(fc, os.path.join(gdb, 'Temas'),fc)
     arcpy.AddMessage('Temas adicionados ao geodatabase local')
+
 def dissolve(fc):
+    arcpy.env.overwriteOutput = True
+    filename = os.path.basename(fc)
     fields_interesse = []
     filename = os.path.basename(fc)
-    if filename == 'Adutoras_SNIRH_ANA_2021':
-        fields_interesse.extend(['ADUTORA','SITUAÇÃO'])
-    elif filename == 'Aerodromos_ANAC_2022':
-        fields_interesse.extend(['Codigo_OAC','CIAD'])
+    if filename == 'Aerodromos_ANAC_2022':
+        fields_interesse.extend(['Codigo_OAC','Tipo','CIAD'])
     elif filename == 'Aerogeradores_ANEEL_2023':
-        fields_interesse.extend(['NOME_EOL','DEN_AEG','POT_MW','CEG','OPERACAO'])
-    elif filename == 'Aproveitamento_Hidreletricos_AHE_ANEEL':
-        fields_interesse.extend(['NOME','MUNIC_1','UF_1','RIO','ATO_LEGAL','TIPO_AHE','FASE','Menor_Distancia'])
-    elif filename == 'Area_Imoveis_Rurais_SICAR_2023':
-        fields_interesse.extend(['COD_IMOVEL','NUM_AREA','COD_ESTADO','SITUACAO','CONDICAO_I','NOM_MUNICI','TIPO_IMOVE'])
-    elif filename == 'Areas_Quilombolas_INCRA':
-        fields_interesse.extend(['nr_process','nm_comunid','nm_municip','cd_uf'])
-    elif filename == 'Areas_Urbanizadas_IBGE_2019':
-        fields_interesse.extend(['Densidade','Tipo','Menor_Distancia','Vertices','UF'])
-    elif filename == 'Assentamentos_INCRA':
-        fields_interesse.extend(['cd_sipra','nome_proje','municipio','area_hecta','capacidade','num_famili'])
-    elif filename == 'Aves_Migratorias_AI_Riqueza_CEMAVE_2019':
-        fields_interesse=[]
-    elif filename == 'Aves_Migratorias_Areas_Ameacadas_CEMAVE_2022':
-        fields_interesse=[]
-    elif filename == 'Aves_Migratorias_Areas_Concentracao_CEMAVE_2022':
-        fields_interesse.extend(['Critério','name'])
-    elif filename == 'Blocos_Disponiveis_OPC_1009_ANP':
-        fields_interesse.extend(['nome_bacia','nomenclatu','situacao_b','nome_setor','indice_blo','AreaANP'])
-    elif filename == 'Bases_de_Combustíveis_EPE':
-        fields_interesse.extend(['nome_base','munic','uf'])
-    elif filename == 'Bases_de_GLP_EPE':
-        fields_interesse.extend(['nome_base','munic','uf'])
-    elif filename == 'Biomas_IBGE_2019_250000':
-        fields_interesse.extend(['Bioma'])
-    elif filename == 'Cavidades_CANIE_19122022':
-        fields_interesse.extend(['Registro_N','Caverna','Municipio','UF','Localidade'])
-    elif filename == 'Centrais_Geradoras_Hidrelétricas_CGH_ANEEL':
-        fields_interesse.extend(['NOME','MUNIC_1','UF_1','RIO','ATO_LEGAL','TIPO_AHE'])
-    elif filename == 'Conservacao_Aves_IBAS':
-        fields_interesse.extend(['Código','Nome_1','Bioma'])
-    elif filename == 'CGH__Base_Existente_EPE':
-        fields_interesse.extend(['NOME','RIO','potencia','ceg'])
-    elif filename == 'CGH__Expansão_Planejada_EPE':
-        fields_interesse.extend(['NOME','RIO','potencia','ceg'])
-    elif filename == 'Dutovias_Gas_Oleo_Minerio_ANP':
-        fields_interesse.extend(['name'])
+        fields_interesse.extend(['NOME_EOL','EOL_VERSAO'])
+    elif filename == 'Aglomerado_Rural_IBGE_2021':
+        fields_interesse.extend(['nome'])
+    elif filename == 'AI_Riqueza_CEMAVE_2019':
+        fields_interesse.extend(['Contagem'])
+    elif filename == 'Aldeias_Indigenas_FUNAI_2023':
+        fields_interesse.extend(['nomuf','nome_aldei'])
+    if filename in temas_extra:
+        fields_interesse.extend(fields_extras)
 
-    output = arcpy.Dissolve_management(fc, os.path.join(junkspace,fr"{fc}_dissolved"), fields_interesse)
+    output_path = os.path.join(junkspace, f"{filename}_dissolved")
+    output_path = arcpy.CreateUniqueName(output_path)
+    if 'UF' in arcpy.ListFields(fc):
+        fields_interesse = fields_interesse + ['UF']
+        output = arcpy.Dissolve_management(fc, output_path, fields_interesse)
+    elif 'UF' not in arcpy.ListFields(fc):
+        output = arcpy.Dissolve_management(fc, output_path, fields_interesse)  
     return output, fields_interesse
 
 def fields(fc):
     filename = os.path.basename(fc)
     fields_to_keep = []
     #caso o tema esteja nessa lista, ele
-    if filename == 'Adutoras_SNIRH_ANA_2021':
-        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
-    elif filename == 'Aerodromos_ANAC_2022':
+    if filename == 'Aerodromos_ANAC_2022':
         fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
     elif filename == 'Aerogeradores_ANEEL_2023':
         fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
-    elif filename == 'Aproveitamento_Hidreletricos_AHE_ANEEL':
-        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
-    elif filename == 'Area_Imoveis_Rurais_SICAR_2023':
-        fields_to_keep = dissolve(fc)[1]+['']
-    elif filename == 'Areas_Quilombolas_INCRA':
-        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
-    elif filename == 'Areas_Urbanizadas_IBGE_2019':
-        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
-    elif filename == 'Assentamentos_INCRA':
-        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
-    elif filename == 'Aves_Migratorias_AI_Riqueza_CEMAVE_2019':
-        fields_to_keep = dissolve(fc)[1]+['UF']
-    elif filename == 'Aves_Migratorias_Areas_Ameacadas_CEMAVE_2022':
-        fields_to_keep = dissolve(fc)[1]+['UF']
-    elif filename == 'Aves_Migratorias_Areas_Concentrcacao_CEMAVE_2022':
-        fields_to_keep = dissolve(fc)[1]+['UF']
-    elif filename == 'Blocos_Disponiveis_OPC_1009_ANP':
-        fields_to_keep = dissolve(fc)[1]+['UF','Vertices']
-    elif filename == 'Bases_de_Combustíveis_EPE':
-        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
-    elif filename == 'Bases_de_GLP_EPE':
-        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
-    elif filename == 'Biomas_IBGE_2019_250000':
-        fields_to_keep = dissolve(fc)[1]+['UF','Vertices']
-    elif filename == 'Cavidades_CANIE_19122022':
-        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
-    elif filename == 'Centrais_Geradoras_Hidrelétricas_CGH_ANEEL':
-        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
-    elif filename == 'Conservacao_Aves_IBAS':
-        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
-    elif filename == 'CGH__Base_Existente_EPE':
-        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
-    elif filename == 'CGH__Expansão_Planejada_EPE':
-        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
-    elif filename == 'Dutovias_Gas_Oleo_Minerio_ANP':
-        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
-    elif filename in temas_extra:
+    elif filename == 'Aglomerado_Rural_IBGE_2021':
+        fields_to_keep = dissolve(fc)[1]+['Distancia','Vertices']
+    elif filename == 'AI_Riqueza_CEMAVE_2019':
+        fields_to_keep = dissolve(fc)[1]+['Distancia','Vertices']
+    elif filename == 'Aldeias_Indigenas_FUNAI_2023':
+        fields_to_keep = dissolve(fc)[1]+['Distancia','Vertices']
+    if filename in temas_extra:
         listfields = arcpy.ListFields(filename)
-        fields_to_keep = listfields + [] ###em andamento, voltar pra isso depois
+        fields_to_keep = listfields + [fields_extras]
 
     return fields_to_keep
 
@@ -335,7 +286,7 @@ def ltnearfeature(fc,buffer,lt):
     joinedfc = arcpy.management.JoinField(in_data=dissolved_fc, in_field='NEAR_FID', join_table=lt, join_field='OBJECTID')
     arcpy.CalculateField_management(joinedfc, 'OBS', expression, "PYTHON")
     selectfc = arcpy.management.SelectLayerByAttribute(in_layer_or_view=joinedfc, selection_type="NEW_SELECTION", where_clause="NEAR_FID <> -1")
-    output = arcpy.CopyFeatures_management(selectfc, fr'{gdb_quantitativo}\LT_Near_{os.path.basename(fc)}')
+    output = arcpy.CopyFeatures_management(selectfc, fr'{gdb_quantitativo}\LT_Near_x_{os.path.basename(fc)}')
     arcpy.AddField_management(output, 'OBS', 'TEXT')
     expression = """def neardist(x):
         if x == 0:
@@ -344,38 +295,30 @@ def ltnearfeature(fc,buffer,lt):
             return ' '"""
     arcpy.management.CalculateField(in_table=output, field='OBS', expression='neardist(!NEAR_DIST!)', code_block=expression)
 
-def toexcel(fc):
-    #EXCEL
-    #verifica se existe a coluna Extensao ou Área ou Distancia
-    #list fields fc
-    fc_fields = arcpy.ListFields(fc)
-    if 'Extensao' in fc_fields:
-        campos_selecionados = fields(fc).append('Extensao')
-    elif 'Area' in fc_fields:
-        campos_selecionados = fields(fc).append('Area')
-    elif 'Distancia' in fc_fields:
-        campos_selecionados = fields(fc).append('Distancia')
-    if 'OBS' in fc_fields:
-        campos_selecionados = fields(fc).append('OBS')
-    if 'Eixo_X' in fc_fields:
-        campos_selecionados = fields(fc).append('Eixo_X')
-    if 'Eixo_Y' in fc_fields:
-        campos_selecionados = fields(fc).append('Eixo_Y')
-    
-    # Obter os nomes originais dos campos
-    desc = arcpy.Describe(fc)
-    campos_originais = [field.name for field in desc.fields if field.name in campos_selecionados]
-    data = [row for row in arcpy.da.SearchCursor(fc, campos_originais)]
-    # Criar um dataframe pandas a partir da tabela de atributos com os campos selecionados
-    df = pd.DataFrame(data, columns=campos_originais)
-    #verificar se o data frame está vazio
+def toexcel(fc, related_field):
+    campos_fc = [campo.name for campo in arcpy.ListFields(fc)]
+    campos_related_field = fields(os.path.join(gdb_path, 'Temas', related_field))
+
+    # Encontrar a interseção entre as colunas do fc e do related_field
+    colunas_comuns = [campo for campo in campos_fc if campo in campos_related_field]
+    if 'UF' in campos_related_field:
+        colunas_comuns.append('UF')
+    if 'OBS' in campos_fc:
+        colunas_comuns.append('OBS')
+
+    if not colunas_comuns:
+        arcpy.AddWarning(f"Não há colunas comuns entre {os.path.basename(fc)} e {related_field}")
+        return
+
+    # Obter os dados apenas das colunas comuns
+    table = arcpy.da.TableToNumPyArray(fc, colunas_comuns, skip_nulls=False)
+    df = pd.DataFrame(table)  # Inicializa a variável df com os dados da tabela
+
     if df.empty:
         df = pd.DataFrame({"Mensagem": ["Não há registros para esse tema na área de estudo"]})
-    else:
-        pass
-    # Salvar o dataframe em um arquivo Excel
-    df.to_excel(os.path.join(pasta_quantitativo, os.path.basename(fr"{fc}.xlsx")), index=False) 
 
+    excel_saida = os.path.join(pasta_quantitativo, f'{os.path.basename(fc)}.xlsx')
+    df.to_excel(excel_saida, index=False)
 
 if atualizar_vao == 'true':
     vao = criavao(lt_inteira, fx_interesse, vert_inicial)
@@ -393,6 +336,7 @@ else:
 arcpy.env.workspace = os.path.join(gdb_path, 'Temas')
 
 temas = arcpy.ListFeatureClasses()
+
 for tema in temas:
     #conta quantos temas tem na pasta Temas
     count = len(temas)
@@ -408,6 +352,10 @@ for tema in temas:
     ltxfeature(os.path.join(gdb_path, 'Temas', tema), lt)
     fxinteressexfeature(os.path.join(gdb_path, 'Temas', tema), fx_interesse)
 
+arcpy.env.workspace = os.path.join(gdb_path, 'Quantitativo')
+temas = arcpy.ListFeatureClasses()
 
-
-
+for tema in temas:
+    lastname = tema.split('_x_')[-1]
+    toexcel(os.path.join(gdb_path, 'Quantitativo', tema),lastname)
+    arcpy.AddMessage(f'Planilha de quantitativo do tema {tema} gerado com sucesso!')
