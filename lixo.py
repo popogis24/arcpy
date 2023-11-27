@@ -158,22 +158,31 @@ def project(gdb,temas_extra):
         arcpy.CreateFeatureDataset_management(gdb, 'Temas', arcpy.Describe(lt_inteira).spatialReference)
     arcpy.env.workspace = bdgis
     feature_classes = arcpy.ListFeatureClasses()
-    if temas_extra != '':
-        feature_classes.append(temas_extra)
-    for fc in feature_classes:
-        #intersect entre a fc e a divisão estadual
-        if 'UF' in fields(fc):
-            fc_intersect = arcpy.analysis.Intersect(in_features=[fc, divisao_estadual], out_feature_class=os.path.join(junkspace,fr'div_{fc}'))
-            arcpy.conversion.FeatureClassToFeatureClass(fc_intersect, os.path.join(gdb, 'Temas'),fc)
-        elif 'UF' not in fields(fc):
-            arcpy.conversion.FeatureClassToFeatureClass(fc, os.path.join(gdb, 'Temas'),fc)
-    arcpy.AddMessage('Temas adicionados ao geodatabase local')
+    if temas_extra == '':
+        for fc in feature_classes:
+            #intersect entre a fc e a divisão estadual
+            if 'UF' in fields(fc):
+                fc_intersect = arcpy.analysis.Intersect(in_features=[fc, divisao_estadual], out_feature_class=os.path.join(junkspace,fr'div_{fc}'))
+                arcpy.conversion.FeatureClassToFeatureClass(fc_intersect, os.path.join(gdb, 'Temas'),fc)
+            elif 'UF' not in fields(fc):
+                arcpy.conversion.FeatureClassToFeatureClass(fc, os.path.join(gdb, 'Temas'),fc)
+        arcpy.AddMessage('Temas adicionados ao geodatabase local')
+    else:
+        temas_extra_name = os.path.basename(temas_extra)
+        if 'UF' in fields_extras:
+            fc_intersect = arcpy.analysis.Intersect(in_features=[temas_extra, divisao_estadual], out_feature_class=os.path.join(junkspace,fr'div_{temas_extra}'))
+            arcpy.conversion.FeatureClassToFeatureClass(fc_intersect, os.path.join(gdb, 'Temas'),temas_extra_name)
+        elif 'UF' not in fields_extras:
+            arcpy.conversion.FeatureClassToFeatureClass(temas_extra, os.path.join(gdb, 'Temas'),temas_extra_name)
 
 def dissolve(fc):
     arcpy.env.overwriteOutput = True
     filename = os.path.basename(fc)
+    if '.shp' in filename:
+        filename_tema_extra=filename.split('.shp')[0]
+    else:
+        filename_tema_extra=filename
     fields_interesse = []
-    filename = os.path.basename(fc)
     if filename == 'Aerodromos_ANAC_2022':
         fields_interesse.extend(['Codigo_OAC','Tipo','CIAD'])
     elif filename == 'Aerogeradores_ANEEL_2023':
@@ -181,40 +190,48 @@ def dissolve(fc):
     elif filename == 'Aglomerado_Rural_IBGE_2021':
         fields_interesse.extend(['nome'])
     elif filename == 'AI_Riqueza_CEMAVE_2019':
-        fields_interesse.extend(['Contagem'])
+        fields_interesse = []
     elif filename == 'Aldeias_Indigenas_FUNAI_2023':
         fields_interesse.extend(['nomuf','nome_aldei'])
-    if filename in temas_extra:
-        fields_interesse.extend(fields_extras)
+    if filename == filename_tema_extra:
+        fields_interesse = [field.name for field in arcpy.ListFields(fc)]
+    
 
     output_path = os.path.join(junkspace, f"{filename}_dissolved")
     output_path = arcpy.CreateUniqueName(output_path)
-
- 
-
-    output = arcpy.Dissolve_management(fc, output_path, fields_interesse)
-    
+    if 'UF' in [field.name for field in arcpy.ListFields(fc)]:
+        fields_interesse = fields_interesse + ['UF']
+        output = arcpy.Dissolve_management(fc, output_path, fields_interesse)
+    else:
+        output = arcpy.Dissolve_management(fc, output_path, fields_interesse)
     return output, fields_interesse
 
 def fields(fc):
     filename = os.path.basename(fc)
-    fields_to_keep = []
-    #caso o tema esteja nessa lista, ele
-    if filename == 'Aerodromos_ANAC_2022':
-        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
-    elif filename == 'Aerogeradores_ANEEL_2023':
-        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
-    elif filename == 'Aglomerado_Rural_IBGE_2021':
-        fields_to_keep = dissolve(fc)[1]+['Distancia','Vertices']
-    elif filename == 'AI_Riqueza_CEMAVE_2019':
-        fields_to_keep = dissolve(fc)[1]+['Distancia','Vertices']
-    elif filename == 'Aldeias_Indigenas_FUNAI_2023':
-        fields_to_keep = dissolve(fc)[1]+['Distancia','Vertices']
-    if filename in temas_extra:
-        listfields = arcpy.ListFields(filename)
-        fields_to_keep = listfields + [fields_extras]
+    if '.shp' in filename:
+        filename_tema_extra = filename.split('.shp')[0]
+    else:
+        filename_tema_extra = filename
 
-    return fields_to_keep
+        fields_to_keep = []
+        # caso o tema esteja nessa lista, ele
+        if filename == 'Aerodromos_ANAC_2022':
+            fields_to_keep = dissolve(fc)[1] + ['UF', 'Distancia', 'Vertices']
+        elif filename == 'Aerogeradores_ANEEL_2023':
+            fields_to_keep = dissolve(fc)[1] + ['UF', 'Distancia', 'Vertices']
+        elif filename == 'Aglomerado_Rural_IBGE_2021':
+            fields_to_keep = dissolve(fc)[1] + ['Distancia', 'Vertices']
+        elif filename == 'AI_Riqueza_CEMAVE_2019':
+            fields_to_keep = dissolve(fc)[1] + ['Distancia', 'Vertices', 'Extensao', 'Area']
+        elif filename == 'Aldeias_Indigenas_FUNAI_2023':
+            fields_to_keep = dissolve(fc)[1] + ['Distancia', 'Vertices']
+        if filename == filename_tema_extra:
+            fc = os.path.join(gdb_path, 'Temas', filename)
+            field_extras_split = fields_extras.split(';')
+            fields_to_keep = dissolve(fc)[1] + field_extras_split
+
+        return fields_to_keep
+
 
 def ltxfeature(fc, lt):
     dissolved_fc = dissolve(fc)[0]
@@ -229,21 +246,16 @@ def ltxfeature(fc, lt):
             output = arcpy.analysis.Intersect(in_features=[lt, dissolved_fc], out_feature_class=os.path.join(gdb_quantitativo,'LT_x_'+filename), output_type='LINE')
             arcpy.AddField_management(output, 'Area', 'FLOAT')
             arcpy.CalculateField_management(output, 'Extensao', '!shape.length@kilometers!', 'PYTHON')
-    elif "Vertice" not in fields(fc):
+    elif "Vertices" not in fields(fc):
+        arcpy.env.workspace = junkspace
         if arcpy.Describe(fc).shapeType == 'Polyline' or arcpy.Describe(fc).shapeType == 'PolylineM' or arcpy.Describe(fc).shapeType == 'PolylineZ':
-            if circuito_duplo != '':
-                lt=arcpy.management.Dissolve(in_features=lt, out_feature_class='dissolved_lt',dissolve_field=circuito_duplo)
-            else:
-                lt=arcpy.management.Dissolve(in_features=lt, out_feature_class='dissolved_lt')
+            lt=arcpy.management.Dissolve(in_features=lt, out_feature_class='dissolved_lt')
             output = arcpy.analysis.Intersect(in_features=[lt, dissolved_fc], out_feature_class=os.path.join(gdb_quantitativo,'LT_x_'+filename), output_type='POINT')
             arcpy.AddField_management(output, 'Eixo_X', 'FLOAT')
             arcpy.CalculateField_management(output, 'Eixo_X', '!shape.firstPoint.X!', 'PYTHON')
             arcpy.CalculateField_management(output, 'Eixo_Y', '!shape.firstPoint.Y!', 'PYTHON')
         elif arcpy.Describe(fc).shapeType == 'Polygon'or arcpy.Describe(fc).shapeType == 'PolygonM' or arcpy.Describe(fc).shapeType == 'PolygonZ':
-            if circuito_duplo != '':
-                lt=arcpy.management.Dissolve(in_features=lt, out_feature_class='dissolved_lt',dissolve_field=circuito_duplo)
-            else:
-                lt=arcpy.management.Dissolve(in_features=lt, out_feature_class='dissolved_lt')
+            lt=arcpy.management.Dissolve(in_features=lt, out_feature_class='dissolved_lt')
             output = arcpy.analysis.Intersect(in_features=[lt, dissolved_fc], out_feature_class=os.path.join(gdb_quantitativo,'LT_x_'+filename), output_type='LINE')
             arcpy.AddField_management(output, 'Area', 'FLOAT')
             arcpy.CalculateField_management(output, 'Extensao', '!shape.length@kilometers!', 'PYTHON')
@@ -260,20 +272,15 @@ def fxinteressexfeature(fc, fx_interesse):
             output = arcpy.Intersect_analysis([fx_interesse, dissolved_fc], os.path.join(gdb_quantitativo,'FxInteresse_x_'+filename))
             arcpy.AddField_management(output, 'Area', 'FLOAT')
             arcpy.CalculateField_management(output, 'Area', '!shape.area@hectares!', 'PYTHON')
-    elif "Vertice" not in fields(fc):
+    elif "Vertices" not in fields(fc):
+        arcpy.env.workspace = junkspace
         if arcpy.Describe(fc).shapeType == 'Polyline' or arcpy.Describe(fc).shapeType == 'PolylineM' or arcpy.Describe(fc).shapeType == 'PolylineZ':
-            if circuito_duplo != '':
-                fx_interesse=arcpy.management.Dissolve(in_features=fx_interesse, out_feature_class='dissolved_fx',dissolve_field=circuito_duplo)
-            elif circuito_duplo == '':
-                fx_interesse=arcpy.management.Dissolve(in_features=fx_interesse, out_feature_class='dissolved_fx')
+            fx_interesse=arcpy.management.Dissolve(in_features=fx_interesse, out_feature_class='dissolved_fx')
             output = arcpy.Intersect_analysis([fx_interesse, dissolved_fc], os.path.join(gdb_quantitativo,'FxInteresse_x_'+filename))
             arcpy.AddField_management(output, 'Extensao', 'FLOAT')
             arcpy.CalculateField_management(output, 'Extensao', '!shape.length@kilometers!', 'PYTHON')
         elif arcpy.Describe(fc).shapeType == 'Polygon' or arcpy.Describe(fc).shapeType == 'PolygonM' or arcpy.Describe(fc).shapeType == 'PolygonZ':
-            if circuito_duplo != '':
-                fx_interesse=arcpy.management.Dissolve(in_features=fx_interesse, out_feature_class='dissolved_fx',dissolve_field=circuito_duplo)
-            elif circuito_duplo == '':
-                fx_interesse=arcpy.management.Dissolve(in_features=fx_interesse, out_feature_class='dissolved_fx')
+            fx_interesse=arcpy.management.Dissolve(in_features=fx_interesse, out_feature_class='dissolved_fx')
             output = arcpy.Intersect_analysis([fx_interesse, dissolved_fc], os.path.join(gdb_quantitativo,'FxInteresse_x_'+filename))
             arcpy.AddField_management(output, 'Area', 'FLOAT')
             arcpy.CalculateField_management(output, 'Area', '!shape.area@hectares!', 'PYTHON')
@@ -310,6 +317,9 @@ def toexcel(fc, related_field):
         arcpy.AddWarning(f"Não há colunas comuns entre {os.path.basename(fc)} e {related_field}")
         return
 
+    # Remove duplicate fields
+    colunas_comuns = list(set(colunas_comuns))
+
     # Obter os dados apenas das colunas comuns
     table = arcpy.da.TableToNumPyArray(fc, colunas_comuns, skip_nulls=False)
     df = pd.DataFrame(table)  # Inicializa a variável df com os dados da tabela
@@ -318,7 +328,11 @@ def toexcel(fc, related_field):
         df = pd.DataFrame({"Mensagem": ["Não há registros para esse tema na área de estudo"]})
 
     excel_saida = os.path.join(pasta_quantitativo, f'{os.path.basename(fc)}.xlsx')
+    df.dropna(axis=1, how='all', inplace=True)
+    
     df.to_excel(excel_saida, index=False)
+    #apaga todas as colunas que não tem informação
+    
 
 
 if atualizar_vao == 'true':
@@ -337,7 +351,6 @@ else:
 arcpy.env.workspace = os.path.join(gdb_path, 'Temas')
 
 temas = arcpy.ListFeatureClasses()
-
 for tema in temas:
     #conta quantos temas tem na pasta Temas
     count = len(temas)
@@ -352,7 +365,6 @@ for tema in temas:
     # Call ltxfeature and fxinteressexfeature functions
     ltxfeature(os.path.join(gdb_path, 'Temas', tema), lt)
     fxinteressexfeature(os.path.join(gdb_path, 'Temas', tema), fx_interesse)
-
 
 arcpy.env.workspace = os.path.join(gdb_path, 'Quantitativo')
 temas = arcpy.ListFeatureClasses()
