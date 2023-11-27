@@ -181,7 +181,7 @@ def dissolve(fc):
     elif filename == 'Aglomerado_Rural_IBGE_2021':
         fields_interesse.extend(['nome'])
     elif filename == 'AI_Riqueza_CEMAVE_2019':
-        fields_interesse.extend(['Contagem'])
+        fields_interesse = []
     elif filename == 'Aldeias_Indigenas_FUNAI_2023':
         fields_interesse.extend(['nomuf','nome_aldei'])
     if filename in temas_extra:
@@ -207,7 +207,7 @@ def fields(fc):
     elif filename == 'Aglomerado_Rural_IBGE_2021':
         fields_to_keep = dissolve(fc)[1]+['Distancia','Vertices']
     elif filename == 'AI_Riqueza_CEMAVE_2019':
-        fields_to_keep = dissolve(fc)[1]+['Distancia','Vertices']
+        fields_to_keep = dissolve(fc)[1]+['Distancia','Vertices','Extensao']
     elif filename == 'Aldeias_Indigenas_FUNAI_2023':
         fields_to_keep = dissolve(fc)[1]+['Distancia','Vertices']
     if filename in temas_extra:
