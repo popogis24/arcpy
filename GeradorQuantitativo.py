@@ -189,11 +189,11 @@ def dissolve(fc):
 
     output_path = os.path.join(junkspace, f"{filename}_dissolved")
     output_path = arcpy.CreateUniqueName(output_path)
-    if 'UF' in arcpy.ListFields(fc):
+    if 'UF' in [field.name for field in arcpy.ListFields(fc)]:
         fields_interesse = fields_interesse + ['UF']
         output = arcpy.Dissolve_management(fc, output_path, fields_interesse)
-    elif 'UF' not in arcpy.ListFields(fc):
-        output = arcpy.Dissolve_management(fc, output_path, fields_interesse)  
+    else:
+        output = arcpy.Dissolve_management(fc, output_path, fields_interesse)
     return output, fields_interesse
 
 def fields(fc):
@@ -310,6 +310,9 @@ def toexcel(fc, related_field):
         arcpy.AddWarning(f"Não há colunas comuns entre {os.path.basename(fc)} e {related_field}")
         return
 
+    # Remove duplicate fields
+    colunas_comuns = list(set(colunas_comuns))
+
     # Obter os dados apenas das colunas comuns
     table = arcpy.da.TableToNumPyArray(fc, colunas_comuns, skip_nulls=False)
     df = pd.DataFrame(table)  # Inicializa a variável df com os dados da tabela
@@ -319,6 +322,7 @@ def toexcel(fc, related_field):
 
     excel_saida = os.path.join(pasta_quantitativo, f'{os.path.basename(fc)}.xlsx')
     df.to_excel(excel_saida, index=False)
+
 
 if atualizar_vao == 'true':
     vao = criavao(lt_inteira, fx_interesse, vert_inicial)
