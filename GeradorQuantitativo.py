@@ -185,7 +185,7 @@ def dissolve(fc):
     elif filename == 'Aldeias_Indigenas_FUNAI_2023':
         fields_interesse.extend(['nomuf','nome_aldei'])
     if filename in temas_extra:
-        fields_interesse.extend(fields_extras)
+        fields_interesse = [field.name for field in arcpy.ListFields(fc)]
 
     output_path = os.path.join(junkspace, f"{filename}_dissolved")
     output_path = arcpy.CreateUniqueName(output_path)
@@ -207,7 +207,7 @@ def fields(fc):
     elif filename == 'Aglomerado_Rural_IBGE_2021':
         fields_to_keep = dissolve(fc)[1]+['Distancia','Vertices']
     elif filename == 'AI_Riqueza_CEMAVE_2019':
-        fields_to_keep = dissolve(fc)[1]+['Distancia','Vertices','Extensao']
+        fields_to_keep = dissolve(fc)[1]+['Distancia','Vertices','Extensao','Area']
     elif filename == 'Aldeias_Indigenas_FUNAI_2023':
         fields_to_keep = dissolve(fc)[1]+['Distancia','Vertices']
     if filename in temas_extra:
@@ -321,7 +321,10 @@ def toexcel(fc, related_field):
         df = pd.DataFrame({"Mensagem": ["Não há registros para esse tema na área de estudo"]})
 
     excel_saida = os.path.join(pasta_quantitativo, f'{os.path.basename(fc)}.xlsx')
+    df.dropna(axis=1, how='all', inplace=True)
     df.to_excel(excel_saida, index=False)
+    #apaga todas as colunas que não tem informação
+    
 
 
 if atualizar_vao == 'true':
