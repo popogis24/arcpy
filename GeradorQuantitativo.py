@@ -10,7 +10,7 @@ arcpy.env.addOutputsToMap = False
 lt_inteira = arcpy.GetParameterAsText(0)#linha de transmissão previa
 circuito_duplo = arcpy.GetParameterAsText(1)#insira a coluna que divide os circuitos
 vert_inicial = arcpy.GetParameterAsText(2)#a linha começa no vertice 01 ou 02?
-fx_interesse = arcpy.GetParameterAsText(3)#largura da faixa de interesse
+fx_interesse = arcpy.GetParameterAsText(3)#insira a faixa de interesse
 bdgis = arcpy.GetParameterAsText(4)#insira o endereço do banco de dados GIS
 temas_extra = arcpy.GetParameterAsText(5)#multiple values (separados por vírgula) de temas que não estão no banco de dados GIS
 fields_extras = arcpy.GetParameterAsText(6)#multiple values (separados por vírgula) de campos extras que não estão no banco de dados GIS
@@ -19,6 +19,8 @@ pasta_quantitativo = arcpy.GetParameterAsText(8)#pasta onde serão salvos os arq
 atualizar = arcpy.GetParameterAsText(9)
 atualizar_vao = arcpy.GetParameterAsText(10)
 junkspace = arcpy.GetParameterAsText(11)
+geodesic = arcpy.GetParameterAsText(12)
+fields_tema_extra = arcpy.GetParameterAsText(13)
 divisao_estadual = r'C:\Users\anderson.souza\Downloads\BR_UF_2022\BR_UF_2022.shp'
 arcpy.env.workspace = gdb_path
 feature_datasets = arcpy.ListDatasets()
@@ -76,14 +78,14 @@ def criavao(shape_lt, fx_interesse,vert_inicial):
         output_diretriz_gerada = arcpy.CopyFeatures_management(output_split, os.path.join(gdb_path,'Dados_Caruso','Vao_LT'))
 
     #largura da faixa de servidao em metros
-    fs_distancia = str(float(fx_interesse)/2)
+    fs_distancia = str(float(fx_interesse)/2)+' Meters'
 
     # Caminho completo para o arquivo shapefile do buffer
     output_buffer_saida = r'in_memory\"faixa_servidao_buffer"'
 
     # Salvar o buffer como shapefile
     arcpy.Buffer_analysis(output_diretriz_gerada, output_buffer_saida, fs_distancia)
-
+    spatial_reference = arcpy.Describe(shape_lt).spatialReference
     # Criar a feature class em memória
     no_over = arcpy.management.CreateFeatureclass(
         "in_memory",  # Caminho "in_memory" indica que a feature class será criada em memória
@@ -92,7 +94,7 @@ def criavao(shape_lt, fx_interesse,vert_inicial):
         None,  # Template - pode ser None para não usar um template
         "DISABLED",  # Habilitar M (Medidas) - neste caso, está desabilitado
         "DISABLED",  # Habilitar Z (Elevação) - neste caso, está desabilitado
-        'PROJCS["SIRGAS_2000_UTM_Zone_22S",GEOGCS["GCS_SIRGAS_2000",DATUM["D_SIRGAS_2000",SPHEROID["GRS_1980",6378137.0,298.257222101]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["False_Easting",500000.0],PARAMETER["False_Northing",10000000.0],PARAMETER["Central_Meridian",-51.0],PARAMETER["Scale_Factor",0.9996],PARAMETER["Latitude_Of_Origin",0.0],UNIT["Meter",1.0]];-5120900 1900 10000;-100000 10000;-100000 10000;0.001;0.001;0.001;IsHighPrecision',
+        spatial_reference,
         '',  # Configurações do cluster - vazio neste caso
         0,  # Recursos do tamanho do arquivo - 0 neste caso para uso padrão
         0,  # Armazenamento do limite do arquivo - 0 neste caso para uso padrão
@@ -126,6 +128,7 @@ def criavao(shape_lt, fx_interesse,vert_inicial):
     cursor = arcpy.SearchCursor(output_buffer_saida)
 
     for row in cursor:
+        arcpy.env.workspace = junkspace
         vao_row = row.getValue('Sequencial')
         sl_getcount = arcpy.management.SelectLayerByAttribute(in_layer_or_view=output_buffer_saida, selection_type='NEW_SELECTION', where_clause=f'"Sequencial"={vao_row}')
         copy_getcount = arcpy.management.CopyFeatures(sl_getcount, "teste2.shp", '', None, None, None) 
@@ -159,22 +162,31 @@ def project(gdb,temas_extra):
     arcpy.env.workspace = bdgis
     feature_classes = arcpy.ListFeatureClasses()
     if temas_extra != '':
-        temas_extra_name = os.path.basename(temas_extra)
+        temas_extra_name = os.path.basename(temas_extra).replace('.shp','')
         if 'UF' in fields_extras:
-            
-            fc_intersect = arcpy.analysis.Intersect(in_features=[temas_extra, divisao_estadual], out_feature_class=os.path.join(junkspace,fr'div_{temas_extra}'))
-            arcpy.conversion.FeatureClassToFeatureClass(fc_intersect, os.path.join(gdb, 'Temas'),temas_extra_name)
+            fc_intersect = arcpy.analysis.Identity(temas_extra, divisao_estadual, os.path.join(junkspace,fr'div_{temas_extra_name}'))
+            fc_layer = arcpy.management.MakeFeatureLayer(fc_intersect, 'fc_layer')
+            fc_select = arcpy.management.SelectLayerByLocation(in_layer=fc_layer, overlap_type='WITHIN_A_DISTANCE', select_features=lt_inteira, search_distance='50000 Meters')
+            arcpy.conversion.FeatureClassToFeatureClass(fc_select, os.path.join(gdb, 'Temas'),temas_extra_name)
         elif 'UF' not in fields_extras:
-            arcpy.conversion.FeatureClassToFeatureClass(temas_extra, os.path.join(gdb, 'Temas'),temas_extra_name)
+            fc_layer = arcpy.management.MakeFeatureLayer(temas_extra, 'fc_layer')
+            fc_select = arcpy.management.SelectLayerByLocation(in_layer=fc_layer, overlap_type='WITHIN_A_DISTANCE', select_features=lt_inteira, search_distance='50000 Meters')
+            arcpy.conversion.FeatureClassToFeatureClass(fc_select, os.path.join(gdb, 'Temas'),temas_extra_name)
     else:
         for fc in feature_classes:
             filename = os.path.basename(fc)
             #intersect entre a fc e a divisão estadual
             if 'UF' in fields(fc):
                 fc_intersect = arcpy.analysis.Identity(fc, divisao_estadual, os.path.join(junkspace,fr'div_{filename}'))
-                arcpy.conversion.FeatureClassToFeatureClass(fc_intersect, os.path.join(gdb, 'Temas'),filename)
+                #select by location para selecionar apenas os poligonos que estao em um raio de 50km da lt
+                fc_layer = arcpy.management.MakeFeatureLayer(fc_intersect, 'fc_layer')
+                fc_select = arcpy.management.SelectLayerByLocation(in_layer=fc_layer, overlap_type='WITHIN_A_DISTANCE', select_features=lt_inteira, search_distance='50000 Meters')
+                arcpy.conversion.FeatureClassToFeatureClass(fc_select, os.path.join(gdb, 'Temas'),filename)
             elif 'UF' not in fields(fc):
-                arcpy.conversion.FeatureClassToFeatureClass(fc, os.path.join(gdb, 'Temas'),filename)
+                #make feature layer
+                fc_layer = arcpy.management.MakeFeatureLayer(fc, 'fc_layer')
+                fc_select = arcpy.management.SelectLayerByLocation(in_layer=fc_layer, overlap_type='WITHIN_A_DISTANCE', select_features=lt_inteira, search_distance='50000 Meters')
+                arcpy.conversion.FeatureClassToFeatureClass(fc_select, os.path.join(gdb, 'Temas'),filename)
         arcpy.AddMessage('Temas adicionados ao geodatabase local')
 
 def dissolve(fc):
@@ -194,8 +206,10 @@ def dissolve(fc):
     elif filename == 'Rios_ANA_2013':
         fields_interesse.extend(['CORIO'])
     if filename in temas_extra:
-        fields_interesse = [field.name for field in arcpy.ListFields(fc)]
-
+        field_split = fields_tema_extra.split(';')
+        fields_interesse = field_split
+        arcpy.AddMessage(fields_interesse)
+        
     # Verifique se o campo "UF" existe no conjunto de features
     if 'UF' in [field.name for field in arcpy.ListFields(fc)]:
         fields_interesse.append('UF')
@@ -226,12 +240,15 @@ def fields(fc):
     elif filename == 'Rios_ANA_2013':
         fields_to_keep = dissolve(fc)[1]+['UF','Extensao','Vertices','Eixo_X','Eixo_Y']
     if filename in temas_extra:
-        listfields = arcpy.ListFields(filename)
-        fields_to_keep = listfields + [fields_extras]
+        fd = fields_extras.split(';')
+        fields_to_keep = dissolve(fc)[1]+list(fd)+['OBS']
+        arcpy.AddMessage(fields_to_keep)
 
     return fields_to_keep
 
 def ltxfeature(fc, lt):
+    expression_geo = '!SHAPE.geodesicLength@KILOMETERS!'
+    expression_proj = '!shape.length@kilometers!'
     dissolved_fc = dissolve(fc)[0]
     filename = os.path.basename(fc)
     if "Vertices" in fields(fc):
@@ -242,7 +259,12 @@ def ltxfeature(fc, lt):
         elif arcpy.Describe(fc).shapeType == 'Polygon' or arcpy.Describe(fc).shapeType == 'PolygonM' or arcpy.Describe(fc).shapeType == 'PolygonZ':
             output = arcpy.analysis.Intersect(in_features=[lt, dissolved_fc], out_feature_class=os.path.join(gdb_quantitativo,'LT_x_'+filename), output_type='LINE')
             arcpy.AddField_management(output, 'Area', 'FLOAT')
-            arcpy.CalculateField_management(output, 'Extensao', '!shape.length@kilometers!', 'PYTHON')
+            expression_geo = '!SHAPE.geodesicLength@KILOMETERS!'
+            expression_proj = '!shape.length@kilometers!'
+            if arcpy.Describe(lt).spatialReference.name == 'SIRGAS_2000':
+                arcpy.CalculateField_management(output, 'Extensao', expression_geo, 'PYTHON')
+            else:
+                arcpy.CalculateField_management(output, 'Extensao', expression_proj, 'PYTHON')
     elif "Vertices" not in fields(fc):
         arcpy.env.workspace = junkspace
         if arcpy.Describe(fc).shapeType == 'Polyline' or arcpy.Describe(fc).shapeType == 'PolylineM' or arcpy.Describe(fc).shapeType == 'PolylineZ':
@@ -254,40 +276,66 @@ def ltxfeature(fc, lt):
             lt=arcpy.management.Dissolve(in_features=lt, out_feature_class='dissolved_lt')
             output = arcpy.analysis.Intersect(in_features=[lt, dissolved_fc], out_feature_class=os.path.join(gdb_quantitativo,'LT_x_'+filename), output_type='LINE')
             arcpy.AddField_management(output, 'Area', 'FLOAT')
-            arcpy.CalculateField_management(output, 'Extensao', '!shape.length@kilometers!', 'PYTHON')
+            if arcpy.Describe(lt).spatialReference.name == 'SIRGAS_2000':
+                arcpy.CalculateField_management(output, 'Extensao', expression_geo, 'PYTHON')
+            else:
+                arcpy.CalculateField_management(output, 'Extensao', expression_proj, 'PYTHON')
 
 def fxinteressexfeature(fc, fx_interesse):
+    expression_geo_len = '!SHAPE.geodesicLength@KILOMETERS!'
+    expression_proj_len = '!shape.length@kilometers!'
+    expression_geo_area = '!SHAPE.geodesicArea@HECTARES!'
+    expression_proj_area = '!shape.area@hectares!'
     dissolved_fc = dissolve(fc)[0]
     filename = os.path.basename(fc)
     if "Vertices" in fields(fc):
         if arcpy.Describe(fc).shapeType == 'Polyline' or arcpy.Describe(fc).shapeType == 'PolylineM' or arcpy.Describe(fc).shapeType == 'PolylineZ':
             output = arcpy.Intersect_analysis([fx_interesse, dissolved_fc], os.path.join(gdb_quantitativo,'FxInteresse_x_'+filename))
             arcpy.AddField_management(output, 'Extensao', 'FLOAT')
-            arcpy.CalculateField_management(output, 'Extensao', '!shape.length@kilometers!', 'PYTHON')
+            if arcpy.Describe(fx_interesse).spatialReference.name == 'SIRGAS_2000':
+                arcpy.AddMessage('Realizando o calculo geodésico')
+                arcpy.CalculateField_management(output, 'Extensao', expression_geo_len, 'PYTHON')
+            else:
+                arcpy.CalculateField_management(output, 'Extensao', expression_proj_len, 'PYTHON')
         elif arcpy.Describe(fc).shapeType == 'Polygon' or arcpy.Describe(fc).shapeType == 'PolygonM' or arcpy.Describe(fc).shapeType == 'PolygonZ':
             output = arcpy.Intersect_analysis([fx_interesse, dissolved_fc], os.path.join(gdb_quantitativo,'FxInteresse_x_'+filename))
             arcpy.AddField_management(output, 'Area', 'FLOAT')
-            arcpy.CalculateField_management(output, 'Area', '!shape.area@hectares!', 'PYTHON')
+            if arcpy.Describe(fx_interesse).spatialReference.name == 'SIRGAS_2000':
+                arcpy.AddMessage('Realizando o calculo geodésico')
+                arcpy.CalculateField_management(output, 'Area', expression_geo_area, 'PYTHON')
+            else:
+                arcpy.CalculateField_management(output, 'Area', expression_proj_area, 'PYTHON')
     elif "Vertices" not in fields(fc):
         arcpy.env.workspace = junkspace
         if arcpy.Describe(fc).shapeType == 'Polyline' or arcpy.Describe(fc).shapeType == 'PolylineM' or arcpy.Describe(fc).shapeType == 'PolylineZ':
             fx_interesse=arcpy.management.Dissolve(in_features=fx_interesse, out_feature_class='dissolved_fx')
             output = arcpy.Intersect_analysis([fx_interesse, dissolved_fc], os.path.join(gdb_quantitativo,'FxInteresse_x_'+filename))
             arcpy.AddField_management(output, 'Extensao', 'FLOAT')
-            arcpy.CalculateField_management(output, 'Extensao', '!shape.length@kilometers!', 'PYTHON')
+            if arcpy.Describe(fx_interesse).spatialReference.name == 'SIRGAS_2000':
+                arcpy.AddMessage('Realizando o calculo geodésico')
+                arcpy.CalculateField_management(output, 'Extensao', expression_geo_len, 'PYTHON')
+            else:
+                arcpy.CalculateField_management(output, 'Extensao', expression_proj_len, 'PYTHON')
         elif arcpy.Describe(fc).shapeType == 'Polygon' or arcpy.Describe(fc).shapeType == 'PolygonM' or arcpy.Describe(fc).shapeType == 'PolygonZ':
             fx_interesse=arcpy.management.Dissolve(in_features=fx_interesse, out_feature_class='dissolved_fx')
             output = arcpy.Intersect_analysis([fx_interesse, dissolved_fc], os.path.join(gdb_quantitativo,'FxInteresse_x_'+filename))
             arcpy.AddField_management(output, 'Area', 'FLOAT')
-            arcpy.CalculateField_management(output, 'Area', '!shape.area@hectares!', 'PYTHON')
+            if arcpy.Describe(fx_interesse).spatialReference.name == 'SIRGAS_2000':
+                arcpy.AddMessage('Realizando o calculo geodésico')
+                arcpy.CalculateField_management(output, 'Area', expression_geo_area, 'PYTHON')
+            else:
+                arcpy.CalculateField_management(output, 'Area', expression_proj_area, 'PYTHON')
 
 def ltnearfeature(fc,buffer,lt):
     dissolved_fc = dissolve(fc)[0]
-    arcpy.analysis.Near(in_features=dissolved_fc, near_features=lt, search_radius=buffer)
+    if geodesic == 'true':
+        arcpy.analysis.Near(in_features = dissolved_fc, near_features = lt, search_radius = buffer, method = 'GEODESIC')
+    else:
+        arcpy.analysis.Near(in_features = dissolved_fc, near_features = lt, search_radius = buffer)
     expression = "round(!NEAR_DIST! / 1000.0, 2)"
     arcpy.CalculateField_management(dissolved_fc, 'Distancia', expression, "PYTHON")
     joinedfc = arcpy.management.JoinField(in_data=dissolved_fc, in_field='NEAR_FID', join_table=lt, join_field='OBJECTID')
-    arcpy.CalculateField_management(joinedfc, 'OBS', expression, "PYTHON")
+    #arcpy.CalculateField_management(joinedfc, 'OBS', expression, "PYTHON")
     selectfc = arcpy.management.SelectLayerByAttribute(in_layer_or_view=joinedfc, selection_type="NEW_SELECTION", where_clause="NEAR_FID <> -1")
     output = arcpy.CopyFeatures_management(selectfc, fr'{gdb_quantitativo}\LT_Near_x_{os.path.basename(fc)}')
     arcpy.AddField_management(output, 'OBS', 'TEXT')
@@ -304,20 +352,6 @@ def toexcel(fc, related_field):
 
     # Encontrar a interseção entre as colunas do fc e do related_field
     colunas_comuns = [campo for campo in campos_fc if campo in campos_related_field]
-    #if 'UF' in campos_related_field:
-    #    colunas_comuns.append('UF')
-    #if 'OBS' in campos_fc:
-    #    colunas_comuns.append('OBS')
-    #if 'Eixo_X' in campos_fc:
-    #    colunas_comuns.append('Eixo_X')
-    #if 'Eixo_Y' in campos_fc:
-    #    colunas_comuns.append('Eixo_Y')
-    ##if 'Distancia' in campos_fc:
-    #    colunas_comuns.append('Distancia')
-    #if 'Extensao' in campos_fc:
-    #    colunas_comuns.append('Extensao')
-    #if 'Extensao' in campos_fc:
-    #    colunas_comuns.append('Area')
 
     if not colunas_comuns:
         arcpy.AddWarning(f"Não há colunas comuns entre {os.path.basename(fc)} e {related_field}")
@@ -336,7 +370,8 @@ def toexcel(fc, related_field):
     excel_saida = os.path.join(pasta_quantitativo, f'{os.path.basename(fc)}.xlsx')
     df.dropna(axis=1, how='all', inplace=True)
     df.to_excel(excel_saida, index=False)
-    #apaga todas as colunas que não tem informação
+    arcpy.AddMessage(f'Planilha de quantitativo do tema {os.path.basename(fc)} gerado com sucesso!')
+
 
 
 if atualizar_vao == 'true':
@@ -352,29 +387,50 @@ if atualizar == 'true':
 else:
     pass
 
-arcpy.env.workspace = os.path.join(gdb_path, 'Temas')
 
-temas = arcpy.ListFeatureClasses()
+if temas_extra == '':
+    arcpy.env.workspace = os.path.join(gdb_path, 'Temas')
 
-for tema in temas:
-    #conta quantos temas tem na pasta Temas
-    count = len(temas)
-    #faz um add mensage com o andamento do processo
-    arcpy.AddMessage(f'Processando {tema} ({temas.index(tema)+1} de {count})')
-    # Check if the feature class is "Unidade de Conservação"
-    if tema == "Unidade de Conservação":
-        ltnearfeature(os.path.join(gdb_path, 'Temas', tema), '50000', lt)
-    elif 'Distancia' in fields(tema):
-        ltnearfeature(os.path.join(gdb_path, 'Temas', tema), '10000', lt)
+    temas = arcpy.ListFeatureClasses()
+    for tema in temas:
+        #conta quantos temas tem na pasta Temas
+        count = len(temas)
+        #faz um add mensage com o andamento do processo
+        arcpy.AddMessage(f'Processando {tema} ({temas.index(tema)+1} de {count})')
+        # Check if the feature class is "Unidade de Conservação"
+        if tema == "Unidade de Conservação":
+            ltnearfeature(os.path.join(gdb_path, 'Temas', tema), '50000 Meters', lt)
+        elif 'Distancia' in fields(tema):
+            ltnearfeature(os.path.join(gdb_path, 'Temas', tema), '10000 Meters', lt)
+        
+        # Call ltxfeature and fxinteressexfeature functions
+        ltxfeature(os.path.join(gdb_path, 'Temas', tema), lt)
+        fxinteressexfeature(os.path.join(gdb_path, 'Temas', tema), fx_interesse)
+else:
+    tema = os.path.basename(temas_extra)
+    arcpy.env.workspace = os.path.join(gdb_path, 'Temas')
+    if 'Distancia' in fields(temas_extra):
+        ltnearfeature(os.path.join(gdb_path, 'Temas', tema), '10000 Meters', lt)
     
     # Call ltxfeature and fxinteressexfeature functions
     ltxfeature(os.path.join(gdb_path, 'Temas', tema), lt)
     fxinteressexfeature(os.path.join(gdb_path, 'Temas', tema), fx_interesse)
 
-arcpy.env.workspace = os.path.join(gdb_path, 'Quantitativo')
-temas = arcpy.ListFeatureClasses()
 
-for tema in temas:
+if temas_extra == '':
+    arcpy.env.workspace = os.path.join(gdb_path, 'Quantitativo')
+    temas = arcpy.ListFeatureClasses()
+
+    for tema in temas:
+        lastname = tema.split('_x_')[-1]
+        toexcel(os.path.join(gdb_path, 'Quantitativo', tema),lastname)
+        arcpy.AddMessage(f'Planilha de quantitativo do tema {tema} gerado com sucesso!')
+else:
+    tema = os.path.basename(temas_extra)
     lastname = tema.split('_x_')[-1]
     toexcel(os.path.join(gdb_path, 'Quantitativo', tema),lastname)
     arcpy.AddMessage(f'Planilha de quantitativo do tema {tema} gerado com sucesso!')
+
+    
+    
+
