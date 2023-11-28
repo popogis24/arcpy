@@ -161,18 +161,20 @@ def project(gdb,temas_extra):
     if temas_extra != '':
         temas_extra_name = os.path.basename(temas_extra)
         if 'UF' in fields_extras:
+            
             fc_intersect = arcpy.analysis.Intersect(in_features=[temas_extra, divisao_estadual], out_feature_class=os.path.join(junkspace,fr'div_{temas_extra}'))
             arcpy.conversion.FeatureClassToFeatureClass(fc_intersect, os.path.join(gdb, 'Temas'),temas_extra_name)
         elif 'UF' not in fields_extras:
             arcpy.conversion.FeatureClassToFeatureClass(temas_extra, os.path.join(gdb, 'Temas'),temas_extra_name)
     else:
         for fc in feature_classes:
+            filename = os.path.basename(fc)
             #intersect entre a fc e a divisão estadual
             if 'UF' in fields(fc):
-                fc_intersect = arcpy.analysis.Intersect(in_features=[fc, divisao_estadual], out_feature_class=os.path.join(junkspace,fr'div_{fc}'))
-                arcpy.conversion.FeatureClassToFeatureClass(fc_intersect, os.path.join(gdb, 'Temas'),fc)
+                fc_intersect = arcpy.analysis.Identity(fc, divisao_estadual, os.path.join(junkspace,fr'div_{filename}'))
+                arcpy.conversion.FeatureClassToFeatureClass(fc_intersect, os.path.join(gdb, 'Temas'),filename)
             elif 'UF' not in fields(fc):
-                arcpy.conversion.FeatureClassToFeatureClass(fc, os.path.join(gdb, 'Temas'),fc)
+                arcpy.conversion.FeatureClassToFeatureClass(fc, os.path.join(gdb, 'Temas'),filename)
         arcpy.AddMessage('Temas adicionados ao geodatabase local')
 
 def dissolve(fc):
@@ -194,13 +196,17 @@ def dissolve(fc):
     if filename in temas_extra:
         fields_interesse = [field.name for field in arcpy.ListFields(fc)]
 
+    # Verifique se o campo "UF" existe no conjunto de features
+    if 'UF' in [field.name for field in arcpy.ListFields(fc)]:
+        fields_interesse.append('UF')
+
+    # Caminho de saída para o conjunto de features dissolvido
     output_path = os.path.join(junkspace, f"{filename}_dissolved")
     output_path = arcpy.CreateUniqueName(output_path)
-    if 'UF' in [field.name for field in arcpy.ListFields(fc)]:
-        fields_interesse = fields_interesse + ['UF']
-        output = arcpy.Dissolve_management(fc, output_path, fields_interesse)
-    else:
-        output = arcpy.Dissolve_management(fc, output_path, fields_interesse)
+
+    # Dissolva o conjunto de features com base nos campos de interesse
+    output = arcpy.Dissolve_management(fc, output_path, fields_interesse)
+
     return output, fields_interesse
 
 def fields(fc):
@@ -208,17 +214,17 @@ def fields(fc):
     fields_to_keep = []
     #caso o tema esteja nessa lista, ele
     if filename == 'Aerodromos_ANAC_2022':
-        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
     elif filename == 'Aerogeradores_ANEEL_2023':
-        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
     elif filename == 'Aglomerado_Rural_IBGE_2021':
-        fields_to_keep = dissolve(fc)[1]+['Distancia','Vertices','Eixo_X','Eixo_Y']
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
     elif filename == 'AI_Riqueza_CEMAVE_2019':
-        fields_to_keep = dissolve(fc)[1]+['Distancia','Vertices','Extensao','Area']
+        fields_to_keep = dissolve(fc)[1]+['UF','Area','Distancia','Extensao','Vertices','OBS']
     elif filename == 'Aldeias_Indigenas_FUNAI_2023':
-        fields_to_keep = dissolve(fc)[1]+['Distancia','Vertices','Eixo_X','Eixo_Y']
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','OBS']
     elif filename == 'Rios_ANA_2013':
-        fields_to_keep = dissolve(fc)[1]+['Vertices','Eixo_X','Eixo_Y']
+        fields_to_keep = dissolve(fc)[1]+['UF','Extensao','Vertices','Eixo_X','Eixo_Y']
     if filename in temas_extra:
         listfields = arcpy.ListFields(filename)
         fields_to_keep = listfields + [fields_extras]
@@ -298,20 +304,20 @@ def toexcel(fc, related_field):
 
     # Encontrar a interseção entre as colunas do fc e do related_field
     colunas_comuns = [campo for campo in campos_fc if campo in campos_related_field]
-    if 'UF' in campos_related_field:
-        colunas_comuns.append('UF')
-    if 'OBS' in campos_fc:
-        colunas_comuns.append('OBS')
-    if 'Eixo_X' in campos_fc:
-        colunas_comuns.append('Eixo_X')
-    if 'Eixo_Y' in campos_fc:
-        colunas_comuns.append('Eixo_Y')
-    if 'Distancia' in campos_fc:
-        colunas_comuns.append('Distancia')
-    if 'Extensao' in campos_fc:
-        colunas_comuns.append('Extensao')
-    if 'Extensao' in campos_fc:
-        colunas_comuns.append('Area')
+    #if 'UF' in campos_related_field:
+    #    colunas_comuns.append('UF')
+    #if 'OBS' in campos_fc:
+    #    colunas_comuns.append('OBS')
+    #if 'Eixo_X' in campos_fc:
+    #    colunas_comuns.append('Eixo_X')
+    #if 'Eixo_Y' in campos_fc:
+    #    colunas_comuns.append('Eixo_Y')
+    ##if 'Distancia' in campos_fc:
+    #    colunas_comuns.append('Distancia')
+    #if 'Extensao' in campos_fc:
+    #    colunas_comuns.append('Extensao')
+    #if 'Extensao' in campos_fc:
+    #    colunas_comuns.append('Area')
 
     if not colunas_comuns:
         arcpy.AddWarning(f"Não há colunas comuns entre {os.path.basename(fc)} e {related_field}")
