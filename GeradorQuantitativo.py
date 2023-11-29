@@ -373,7 +373,6 @@ def toexcel(fc, related_field):
     arcpy.AddMessage(f'Planilha de quantitativo do tema {os.path.basename(fc)} gerado com sucesso!')
 
 
-
 if atualizar_vao == 'true':
     vao = criavao(lt_inteira, fx_interesse, vert_inicial)
     lt = vao[0]
