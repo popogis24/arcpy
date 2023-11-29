@@ -8,19 +8,19 @@ arcpy.env.addOutputsToMap = False
 
 
 lt_inteira = arcpy.GetParameterAsText(0)#linha de transmissão previa
-circuito_duplo = arcpy.GetParameterAsText(1)#insira a coluna que divide os circuitos
-vert_inicial = arcpy.GetParameterAsText(2)#a linha começa no vertice 01 ou 02?
-fx_interesse = arcpy.GetParameterAsText(3)#insira a faixa de interesse
-bdgis = arcpy.GetParameterAsText(4)#insira o endereço do banco de dados GIS
-temas_extra = arcpy.GetParameterAsText(5)#multiple values (separados por vírgula) de temas que não estão no banco de dados GIS
-fields_extras = arcpy.GetParameterAsText(6)#multiple values (separados por vírgula) de campos extras que não estão no banco de dados GIS
+circuito_duplo = arcpy.GetParameterAsText(2)#insira a coluna que divide os circuitos
+vert_inicial = arcpy.GetParameterAsText(4)#a linha começa no vertice 01 ou 02?
+fx_interesse = arcpy.GetParameterAsText(5)#insira a faixa de interesse
+bdgis = arcpy.GetParameterAsText(6)#insira o endereço do banco de dados GIS
+temas_extra = arcpy.GetParameterAsText(11)#multiple values (separados por vírgula) de temas que não estão no banco de dados GIS
+fields_extras = arcpy.GetParameterAsText(13)#multiple values (separados por vírgula) de campos extras que não estão no banco de dados GIS
 gdb_path = arcpy.GetParameterAsText(7)#caminho do geodatabase final, que terá os temas que estão no banco de dados GIS
-pasta_quantitativo = arcpy.GetParameterAsText(8)#pasta onde serão salvos os arquivos excel
-atualizar = arcpy.GetParameterAsText(9)
-atualizar_vao = arcpy.GetParameterAsText(10)
-junkspace = arcpy.GetParameterAsText(11)
-geodesic = arcpy.GetParameterAsText(12)
-fields_tema_extra = arcpy.GetParameterAsText(13)
+pasta_quantitativo = arcpy.GetParameterAsText(9)#pasta onde serão salvos os arquivos excel
+atualizar = arcpy.GetParameterAsText(8)
+atualizar_vao = arcpy.GetParameterAsText(3)
+junkspace = arcpy.GetParameterAsText(10)
+geodesic = arcpy.GetParameterAsText(1)
+fields_tema_extra = arcpy.GetParameterAsText(12)
 divisao_estadual = r'C:\Users\anderson.souza\Downloads\BR_UF_2022\BR_UF_2022.shp'
 arcpy.env.workspace = gdb_path
 feature_datasets = arcpy.ListDatasets()
@@ -204,7 +204,7 @@ def dissolve(fc):
     elif filename == 'Aldeias_Indigenas_FUNAI_2023':
         fields_interesse.extend(['nomuf','nome_aldei'])
     elif filename == 'Rios_ANA_2013':
-        fields_interesse.extend(['CORIO'])
+        fields_interesse.extend(['NORIOCOMP'])
     if filename in temas_extra:
         field_split = fields_tema_extra.split(';')
         fields_interesse = field_split
@@ -423,7 +423,7 @@ if temas_extra == '':
     for tema in temas:
         lastname = tema.split('_x_')[-1]
         toexcel(os.path.join(gdb_path, 'Quantitativo', tema),lastname)
-        arcpy.AddMessage(f'Planilha de quantitativo do tema {tema} gerado com sucesso!')
+
 else:
     arcpy.env.workspace = os.path.join(gdb_path, 'Quantitativo')
     tema = os.path.basename(temas_extra)
@@ -434,7 +434,7 @@ else:
             name_fc = os.path.basename(fc)
             lastname = name_fc.split('_x_')[-1]
             toexcel(os.path.join(gdb_path, 'Quantitativo', fc),lastname)
-            arcpy.AddMessage(f'Planilha de quantitativo do tema {tema} gerado com sucesso!')
+
 
     
     
