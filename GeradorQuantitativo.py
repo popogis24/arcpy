@@ -206,7 +206,7 @@ def project(gdb,temas_extra):
                 fc_layer = arcpy.management.MakeFeatureLayer(fc, 'fc_layer')
                 fc_select = arcpy.management.SelectLayerByLocation(in_layer=fc_layer, overlap_type='WITHIN_A_DISTANCE', select_features=lt_inteira, search_distance='50000 Meters')
                 arcpy.conversion.FeatureClassToFeatureClass(fc_select, os.path.join(gdb, 'Temas'),filename)
-arcpy.AddMessage('Temas adicionados ao geodatabase local')
+    arcpy.AddMessage('Temas adicionados ao geodatabase local')
 
 def lista_dados_referenciais():
     filenames = [
