@@ -187,7 +187,7 @@ def project(gdb,temas_extra):
                 fc_layer = arcpy.management.MakeFeatureLayer(fc, 'fc_layer')
                 fc_select = arcpy.management.SelectLayerByLocation(in_layer=fc_layer, overlap_type='WITHIN_A_DISTANCE', select_features=lt_inteira, search_distance='50000 Meters')
                 arcpy.conversion.FeatureClassToFeatureClass(fc_select, os.path.join(gdb, 'Temas'),filename)
-        arcpy.AddMessage('Temas adicionados ao geodatabase local')
+arcpy.AddMessage('Temas adicionados ao geodatabase local')
 
 def dissolve(fc):
     arcpy.env.overwriteOutput = True
@@ -425,10 +425,16 @@ if temas_extra == '':
         toexcel(os.path.join(gdb_path, 'Quantitativo', tema),lastname)
         arcpy.AddMessage(f'Planilha de quantitativo do tema {tema} gerado com sucesso!')
 else:
+    arcpy.env.workspace = os.path.join(gdb_path, 'Quantitativo')
     tema = os.path.basename(temas_extra)
-    lastname = tema.split('_x_')[-1]
-    toexcel(os.path.join(gdb_path, 'Quantitativo', tema),lastname)
-    arcpy.AddMessage(f'Planilha de quantitativo do tema {tema} gerado com sucesso!')
+    temas = arcpy.ListFeatureClasses()
+    for fc in temas:
+        if tema in fc:
+            arcpy.AddMessage(f'Processando {fc}')
+            name_fc = os.path.basename(fc)
+            lastname = name_fc.split('_x_')[-1]
+            toexcel(os.path.join(gdb_path, 'Quantitativo', fc),lastname)
+            arcpy.AddMessage(f'Planilha de quantitativo do tema {tema} gerado com sucesso!')
 
     
     
