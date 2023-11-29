@@ -118,6 +118,25 @@ def criavao(shape_lt, fx_interesse,vert_inicial):
             row[1] = vert_valor
             update_cursor.updateRow(row)
 
+
+    # Adicionar novo campo "Circuito" na feature class "no_over"
+    campo_circuito = 'Circuito'
+    arcpy.management.AddField(no_over, campo_circuito, 'TEXT', field_length=50)
+
+    # Preencher o campo "Circuito" na faixa de servidão com os valores correspondentes da LT
+    with arcpy.da.SearchCursor(output_diretriz_gerada, ['Sequencial', 'Circuito']) as search_cursor:
+        for row_search in search_cursor:
+            sequencial = row_search[0]
+            circuito_lt = row_search[1]
+
+            # Atualizar o campo "Circuito" na faixa de servidão com o valor correspondente da LT
+            with arcpy.da.UpdateCursor(no_over, ['Sequencial', campo_circuito]) as update_cursor:
+                for row_update in update_cursor:
+                    if row_update[0] == sequencial:
+                        row_update[1] = circuito_lt
+                        update_cursor.updateRow(row_update)
+                        break
+
     sl_fx_serv = arcpy.management.SelectLayerByAttribute(in_layer_or_view=output_buffer_saida, selection_type='NEW_SELECTION', where_clause='Sequencial=0')
     feature_copiada = os.path.join(gdb_path,'Dados_Caruso','feature_copiada')
     copyfzero = arcpy.management.CopyFeatures(sl_fx_serv, feature_copiada, '', None, None, None)
@@ -189,6 +208,17 @@ def project(gdb,temas_extra):
                 arcpy.conversion.FeatureClassToFeatureClass(fc_select, os.path.join(gdb, 'Temas'),filename)
 arcpy.AddMessage('Temas adicionados ao geodatabase local')
 
+def lista_dados_referenciais():
+    filenames = [
+    'Aerodromos_ANAC_2022',
+    'Aerogeradores_ANEEL_2023',
+    'Aglomerado_Rural_IBGE_2021',
+    'AI_Riqueza_CEMAVE_2019',
+    'Aldeias_Indigenas_FUNAI_2023',
+    'Rios_ANA_2013'
+]
+    return filenames
+
 def dissolve(fc):
     arcpy.env.overwriteOutput = True
     filename = os.path.basename(fc)
@@ -213,6 +243,8 @@ def dissolve(fc):
     # Verifique se o campo "UF" existe no conjunto de features
     if 'UF' in [field.name for field in arcpy.ListFields(fc)]:
         fields_interesse.append('UF')
+        arcpy.AddMessage(fields_interesse)
+    
 
     # Caminho de saída para o conjunto de features dissolvido
     output_path = os.path.join(junkspace, f"{filename}_dissolved")
@@ -243,7 +275,8 @@ def fields(fc):
         fd = fields_extras.split(';')
         fields_to_keep = dissolve(fc)[1]+list(fd)+['OBS']
         arcpy.AddMessage(fields_to_keep)
-
+    if circuito_duplo == 'true':
+        fields_to_keep.append('Circuito')
     return fields_to_keep
 
 def ltxfeature(fc, lt):
@@ -374,9 +407,46 @@ def toexcel(fc, related_field):
 
 
 if atualizar_vao == 'true':
-    vao = criavao(lt_inteira, fx_interesse, vert_inicial)
-    lt = vao[0]
-    fx_interesse = vao[1]
+    #deleta todos os feature classes na pasta dados caruso
+    arcpy.env.workspace = os.path.join(gdb_path, 'Dados_Caruso')
+    arcpy.management.Delete(os.path.join(gdb_path, 'Dados_Caruso','Vao_LT'))
+    arcpy.management.Delete(os.path.join(gdb_path, 'Dados_Caruso','Vao_FxInteresse'))
+    if circuito_duplo == 'false':
+        vao = criavao(lt_inteira, fx_interesse, vert_inicial)
+        lt = vao[0]
+        fx_interesse = vao[1]
+    elif circuito_duplo == 'true':
+        path = os.path.join(gdb_path, 'Dados_Caruso')
+        #lista as linhas no shape de lt que tem circuito 1 e 2
+        lt_circuito1 = arcpy.management.SelectLayerByAttribute(in_layer_or_view=lt_inteira, selection_type='NEW_SELECTION', where_clause="Circuito = 'C1'")
+        lt_circuito2 = arcpy.management.SelectLayerByAttribute(in_layer_or_view=lt_inteira, selection_type='NEW_SELECTION', where_clause="Circuito = 'C2'")
+
+        #LT
+        lt_c1 = criavao(lt_circuito1, fx_interesse, vert_inicial)
+        arcpy.management.Rename(lt_c1[0], 'Vao_LT_C1')
+        lt_c2 = criavao(lt_circuito2, fx_interesse, vert_inicial)
+        arcpy.management.Rename(lt_c2[0], 'Vao_LT_C2')
+        lt = arcpy.management.Merge([os.path.join(path,'Vao_LT_C1'),os.path.join(path,'Vao_LT_C2')],os.path.join(path,'Vao_LT_Merged'))
+        arcpy.management.Delete(os.path.join(path,'Vao_LT_C1'))
+        arcpy.management.Delete(os.path.join(path,'Vao_LT_C2'))
+        arcpy.management.Rename(os.path.join(path,'Vao_LT_Merged'), 'Vao_LT_Correto')
+
+        #FXINTERESSE
+        fx_c1 = criavao(lt_circuito1, fx_interesse, vert_inicial)
+        arcpy.management.Rename(fx_c1[1], 'Vao_FxInteresse_C1')
+        fx_c2 = criavao(lt_circuito2, fx_interesse, vert_inicial)
+        arcpy.management.Rename(fx_c2[1], 'Vao_FxInteresse_C2')
+        fx_interesse = arcpy.management.Merge([os.path.join(path,'Vao_FxInteresse_C1'),os.path.join(path,'Vao_FxInteresse_C2')],os.path.join(path,'Vao_FxInteresse_Merged'))
+        arcpy.management.Delete(os.path.join(path,'Vao_FxInteresse_C1'))
+        arcpy.management.Delete(os.path.join(path,'Vao_FxInteresse_C2'))
+        arcpy.management.Rename(os.path.join(path,'Vao_FxInteresse_Merged'), 'Vao_FxInteresse_Correto')
+
+        #CONSOLIDACAO
+        arcpy.management.Delete(os.path.join(path,'Vao_LT'))
+        arcpy.management.Rename(os.path.join(path,'Vao_LT_Correto'), 'Vao_LT')
+        arcpy.management.Rename(os.path.join(path,'Vao_FxInteresse_Correto'), 'Vao_FxInteresse')
+        lt = os.path.join(gdb_path, 'Dados_Caruso','Vao_LT')
+        fx_interesse = os.path.join(gdb_path, 'Dados_Caruso','Vao_FxInteresse')
 else: 
     lt = os.path.join(gdb_path, 'Dados_Caruso','Vao_LT')
     fx_interesse = os.path.join(gdb_path, 'Dados_Caruso','Vao_FxInteresse')
@@ -389,22 +459,21 @@ else:
 
 if temas_extra == '':
     arcpy.env.workspace = os.path.join(gdb_path, 'Temas')
-
     temas = arcpy.ListFeatureClasses()
     for tema in temas:
-        #conta quantos temas tem na pasta Temas
-        count = len(temas)
-        #faz um add mensage com o andamento do processo
-        arcpy.AddMessage(f'Processando {tema} ({temas.index(tema)+1} de {count})')
-        # Check if the feature class is "Unidade de Conservação"
-        if tema == "Unidade de Conservação":
-            ltnearfeature(os.path.join(gdb_path, 'Temas', tema), '50000 Meters', lt)
-        elif 'Distancia' in fields(tema):
-            ltnearfeature(os.path.join(gdb_path, 'Temas', tema), '10000 Meters', lt)
-        
-        # Call ltxfeature and fxinteressexfeature functions
-        ltxfeature(os.path.join(gdb_path, 'Temas', tema), lt)
-        fxinteressexfeature(os.path.join(gdb_path, 'Temas', tema), fx_interesse)
+        if tema in lista_dados_referenciais():
+            #conta quantos temas tem na pasta Temas
+            count = len(temas)
+            #faz um add mensage com o andamento do processo
+            arcpy.AddMessage(f'Processando {tema} ({temas.index(tema)+1} de {count})')
+            # Check if the feature class is "Unidade de Conservação"
+            if tema == "Unidade de Conservação":
+                ltnearfeature(os.path.join(gdb_path, 'Temas', tema), '50000 Meters', lt)
+            elif 'Distancia' in fields(tema):
+                ltnearfeature(os.path.join(gdb_path, 'Temas', tema), '10000 Meters', lt)
+            # Call ltxfeature and fxinteressexfeature functions
+            ltxfeature(os.path.join(gdb_path, 'Temas', tema), lt)
+            fxinteressexfeature(os.path.join(gdb_path, 'Temas', tema), fx_interesse)
 else:
     tema = os.path.basename(temas_extra)
     arcpy.env.workspace = os.path.join(gdb_path, 'Temas')
@@ -417,13 +486,13 @@ else:
 
 
 if temas_extra == '':
-    arcpy.env.workspace = os.path.join(gdb_path, 'Quantitativo')
-    temas = arcpy.ListFeatureClasses()
+    if tema not in lista_dados_referenciais():
+        arcpy.env.workspace = os.path.join(gdb_path, 'Quantitativo')
+        temas = arcpy.ListFeatureClasses()
 
-    for tema in temas:
-        lastname = tema.split('_x_')[-1]
-        toexcel(os.path.join(gdb_path, 'Quantitativo', tema),lastname)
-
+        for tema in temas:
+            lastname = tema.split('_x_')[-1]
+            toexcel(os.path.join(gdb_path, 'Quantitativo', tema),lastname)
 else:
     arcpy.env.workspace = os.path.join(gdb_path, 'Quantitativo')
     tema = os.path.basename(temas_extra)
@@ -436,6 +505,6 @@ else:
             toexcel(os.path.join(gdb_path, 'Quantitativo', fc),lastname)
 
 
-    
-    
+
+
 
