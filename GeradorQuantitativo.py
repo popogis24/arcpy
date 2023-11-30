@@ -274,7 +274,7 @@ def fields(fc):
     elif filename == 'Linhas_Existentes_EPE':
         fields_to_keep = dissolve(fc)[1]+['UF','Extensao','Vertices','Eixo_X','Eixo_Y']
     elif filename == 'Biomas_IBGE':
-        fields_to_keep = dissolve(fc)[1]+['UF','Area','Extensao','Vertices']
+        fields_to_keep = dissolve(fc)[1]+['UF','Area','Extensao']
     if filename in temas_extra:
         fd = fields_extras.split(';')
         fields_to_keep = dissolve(fc)[1]+list(fd)+['OBS']
@@ -412,13 +412,16 @@ def toexcel(fc, related_field):
     if os.path.basename(fc).split('_x_')[1] in lista_arquivos:
         for arquivo in lista_arquivos:
             if os.path.basename(fc).split('_x_')[1] in arquivo:
-                
                 excel_saida = os.path.join(pasta_quantitativo, arquivo, f'{os.path.basename(fc)}.xlsx')
+                #remove as colunas vazias
+                df = df.dropna(axis=1, how='all')
                 df.to_excel(excel_saida, index=False)
                 arcpy.AddMessage(f'Planilha de quantitativo do tema {os.path.basename(fc)} gerado com sucesso!')
     else:
         os.mkdir(os.path.join(pasta_quantitativo, os.path.basename(fc).split('_x_')[1]))
         excel_saida = os.path.join(pasta_quantitativo, os.path.basename(fc).split('_x_')[1], f'{os.path.basename(fc)}.xlsx')
+        #remove as colunas vazias
+        df = df.dropna(axis=1, how='all')
         df.to_excel(excel_saida, index=False)
         arcpy.AddMessage(f'Planilha de quantitativo do tema {os.path.basename(fc)} gerado com sucesso!')
 
