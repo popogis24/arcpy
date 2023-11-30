@@ -233,8 +233,10 @@ def dissolve(fc):
         fields_interesse = []
     elif filename == 'Aldeias_Indigenas_FUNAI_2023':
         fields_interesse.extend(['nomuf','nome_aldei'])
-    elif filename == 'Rios_ANA_2013':
-        fields_interesse.extend(['NORIOCOMP'])
+    elif filename == 'Linhas_Existentes_EPE':
+        fields_interesse.extend(['Concession'])
+    elif filename == 'Biomas_IBGE':
+        fields_interesse.extend(['Bioma'])
     if filename in temas_extra:
         field_split = fields_tema_extra.split(';')
         fields_interesse = field_split
@@ -269,8 +271,10 @@ def fields(fc):
         fields_to_keep = dissolve(fc)[1]+['UF','Area','Distancia','Extensao','Vertices','OBS']
     elif filename == 'Aldeias_Indigenas_FUNAI_2023':
         fields_to_keep = dissolve(fc)[1]+['UF','Distancia','OBS']
-    elif filename == 'Rios_ANA_2013':
+    elif filename == 'Linhas_Existentes_EPE':
         fields_to_keep = dissolve(fc)[1]+['UF','Extensao','Vertices','Eixo_X','Eixo_Y']
+    elif filename == 'Biomas_IBGE':
+        fields_to_keep = dissolve(fc)[1]+['UF','Area','Extensao','Vertices']
     if filename in temas_extra:
         fd = fields_extras.split(';')
         fields_to_keep = dissolve(fc)[1]+list(fd)+['OBS']
@@ -285,7 +289,7 @@ def ltxfeature(fc, lt):
     dissolved_fc = dissolve(fc)[0]
     filename = os.path.basename(fc)
     if "Vertices" in fields(fc):
-        if arcpy.Describe(fc).shapeType == 'Polyline' or arcpy.Describe(fc).shapeType == 'PolylineM' or arcpy.Describe(fc).shapeType == 'PolylineZ':         
+        if arcpy.Describe(fc).shapeType == 'Polyline' or arcpy.Describe(fc).shapeType == 'PolylineM' or arcpy.Describe(fc).shapeType == 'PolylineZ':    
             output = arcpy.analysis.Intersect(in_features=[lt, dissolved_fc], out_feature_class=os.path.join(gdb_quantitativo,'LT_x_'+filename), output_type='POINT')
             arcpy.CalculateField_management(output, 'Eixo_X', '!shape.firstPoint.X!', 'PYTHON')
             arcpy.CalculateField_management(output, 'Eixo_Y', '!shape.firstPoint.Y!', 'PYTHON')
@@ -400,10 +404,24 @@ def toexcel(fc, related_field):
     if df.empty:
         df = pd.DataFrame({"Mensagem": ["Não há registros para esse tema na área de estudo"]})
 
-    excel_saida = os.path.join(pasta_quantitativo, f'{os.path.basename(fc)}.xlsx')
-    df.dropna(axis=1, how='all', inplace=True)
-    df.to_excel(excel_saida, index=False)
-    arcpy.AddMessage(f'Planilha de quantitativo do tema {os.path.basename(fc)} gerado com sucesso!')
+    #lista todas as pastas na pasta quantitativo que não terminam com .xlsx
+    lista_arquivos = [arquivo for arquivo in os.listdir(pasta_quantitativo) if not arquivo.endswith('.xlsx')]
+    #lista todos os arquivos excel na pasta quantitativo
+
+
+    if os.path.basename(fc).split('_x_')[1] in lista_arquivos:
+        for arquivo in lista_arquivos:
+            if os.path.basename(fc).split('_x_')[1] in arquivo:
+                
+                excel_saida = os.path.join(pasta_quantitativo, arquivo, f'{os.path.basename(fc)}.xlsx')
+                df.to_excel(excel_saida, index=False)
+                arcpy.AddMessage(f'Planilha de quantitativo do tema {os.path.basename(fc)} gerado com sucesso!')
+    else:
+        os.mkdir(os.path.join(pasta_quantitativo, os.path.basename(fc).split('_x_')[1]))
+        excel_saida = os.path.join(pasta_quantitativo, os.path.basename(fc).split('_x_')[1], f'{os.path.basename(fc)}.xlsx')
+        df.to_excel(excel_saida, index=False)
+        arcpy.AddMessage(f'Planilha de quantitativo do tema {os.path.basename(fc)} gerado com sucesso!')
+
 
 
 if atualizar_vao == 'true':
@@ -455,7 +473,18 @@ if atualizar == 'true':
     project(gdb_path, temas_extra)
 else:
     pass
-
+    
+def lista_dados_referenciais():
+    filenames = [
+        'Aerodromos_ANAC_2022',
+        'Aerogeradores_ANEEL_2023',
+        'Aglomerado_Rural_IBGE_2021',
+        'AI_Riqueza_CEMAVE_2019',
+        'Aldeias_Indigenas_FUNAI_2023',
+        'Linhas_Existentes_EPE',
+        'Biomas_IBGE'
+    ]
+    return filenames
 
 if temas_extra == '':
     arcpy.env.workspace = os.path.join(gdb_path, 'Temas')
@@ -485,13 +514,15 @@ else:
     fxinteressexfeature(os.path.join(gdb_path, 'Temas', tema), fx_interesse)
 
 
-if temas_extra == '':
-    if tema not in lista_dados_referenciais():
-        arcpy.env.workspace = os.path.join(gdb_path, 'Quantitativo')
-        temas = arcpy.ListFeatureClasses()
 
-        for tema in temas:
-            lastname = tema.split('_x_')[-1]
+if temas_extra == '':
+    arcpy.env.workspace = os.path.join(gdb_path, 'Quantitativo')
+    temas = arcpy.ListFeatureClasses()
+    for tema in temas:
+        lastname = tema.split('_x_')[-1]
+        arcpy.env.workspace = os.path.join(gdb_path, 'Temas')
+        pasta_temas = arcpy.ListFeatureClasses()
+        if lastname in lista_dados_referenciais() and lastname in pasta_temas:
             toexcel(os.path.join(gdb_path, 'Quantitativo', tema),lastname)
 else:
     arcpy.env.workspace = os.path.join(gdb_path, 'Quantitativo')
@@ -503,8 +534,3 @@ else:
             name_fc = os.path.basename(fc)
             lastname = name_fc.split('_x_')[-1]
             toexcel(os.path.join(gdb_path, 'Quantitativo', fc),lastname)
-
-
-
-
-
