@@ -215,8 +215,8 @@ def lista_dados_referenciais():
     'Aglomerado_Rural_IBGE_2021',
     'AI_Riqueza_CEMAVE_2019',
     'Aldeias_Indigenas_FUNAI_2023',
-    'Rios_ANA_2013'
-]
+    'Linhas_Existentes_EPE',
+    'Biomas_IBGE']
     return filenames
 
 def dissolve(fc):
@@ -303,14 +303,13 @@ def ltxfeature(fc, lt):
             else:
                 arcpy.CalculateField_management(output, 'Extensao', expression_proj, 'PYTHON')
     elif "Vertices" not in fields(fc):
-        arcpy.env.workspace = junkspace
         if arcpy.Describe(fc).shapeType == 'Polyline' or arcpy.Describe(fc).shapeType == 'PolylineM' or arcpy.Describe(fc).shapeType == 'PolylineZ':
-            lt=arcpy.management.Dissolve(in_features=lt, out_feature_class='dissolved_lt')
+            lt=arcpy.management.Dissolve(in_features=lt, out_feature_class=os.path.join(junkspace,'dissolved_lt'))
             output = arcpy.analysis.Intersect(in_features=[lt, dissolved_fc], out_feature_class=os.path.join(gdb_quantitativo,'LT_x_'+filename), output_type='POINT')
             arcpy.CalculateField_management(output, 'Eixo_X', '!shape.firstPoint.X!', 'PYTHON')
             arcpy.CalculateField_management(output, 'Eixo_Y', '!shape.firstPoint.Y!', 'PYTHON')
         elif arcpy.Describe(fc).shapeType == 'Polygon'or arcpy.Describe(fc).shapeType == 'PolygonM' or arcpy.Describe(fc).shapeType == 'PolygonZ':
-            lt=arcpy.management.Dissolve(in_features=lt, out_feature_class='dissolved_lt')
+            lt=arcpy.management.Dissolve(in_features=lt, out_feature_class=os.path.join(junkspace,'dissolved_lt'))
             output = arcpy.analysis.Intersect(in_features=[lt, dissolved_fc], out_feature_class=os.path.join(gdb_quantitativo,'LT_x_'+filename), output_type='LINE')
             arcpy.AddField_management(output, 'Area', 'FLOAT')
             if arcpy.Describe(lt).spatialReference.name == 'SIRGAS_2000':
@@ -319,9 +318,7 @@ def ltxfeature(fc, lt):
                 arcpy.CalculateField_management(output, 'Extensao', expression_proj, 'PYTHON')
 
 def fxinteressexfeature(fc, fx_interesse):
-    expression_geo_len = '!SHAPE.geodesicLength@KILOMETERS!'
     expression_proj_len = '!shape.length@kilometers!'
-    expression_geo_area = '!SHAPE.geodesicArea@HECTARES!'
     expression_proj_area = '!shape.area@hectares!'
     dissolved_fc = dissolve(fc)[0]
     filename = os.path.basename(fc)
@@ -329,39 +326,22 @@ def fxinteressexfeature(fc, fx_interesse):
         if arcpy.Describe(fc).shapeType == 'Polyline' or arcpy.Describe(fc).shapeType == 'PolylineM' or arcpy.Describe(fc).shapeType == 'PolylineZ':
             output = arcpy.Intersect_analysis([fx_interesse, dissolved_fc], os.path.join(gdb_quantitativo,'FxInteresse_x_'+filename))
             arcpy.AddField_management(output, 'Extensao', 'FLOAT')
-            if arcpy.Describe(fx_interesse).spatialReference.name == 'SIRGAS_2000':
-                arcpy.AddMessage('Realizando o calculo geodésico')
-                arcpy.CalculateField_management(output, 'Extensao', expression_geo_len, 'PYTHON')
-            else:
-                arcpy.CalculateField_management(output, 'Extensao', expression_proj_len, 'PYTHON')
+            arcpy.CalculateField_management(output, 'Extensao', expression_proj_len, 'PYTHON')
         elif arcpy.Describe(fc).shapeType == 'Polygon' or arcpy.Describe(fc).shapeType == 'PolygonM' or arcpy.Describe(fc).shapeType == 'PolygonZ':
             output = arcpy.Intersect_analysis([fx_interesse, dissolved_fc], os.path.join(gdb_quantitativo,'FxInteresse_x_'+filename))
             arcpy.AddField_management(output, 'Area', 'FLOAT')
-            if arcpy.Describe(fx_interesse).spatialReference.name == 'SIRGAS_2000':
-                arcpy.AddMessage('Realizando o calculo geodésico')
-                arcpy.CalculateField_management(output, 'Area', expression_geo_area, 'PYTHON')
-            else:
-                arcpy.CalculateField_management(output, 'Area', expression_proj_area, 'PYTHON')
+            arcpy.CalculateField_management(output, 'Area', expression_proj_area, 'PYTHON')
     elif "Vertices" not in fields(fc):
-        arcpy.env.workspace = junkspace
         if arcpy.Describe(fc).shapeType == 'Polyline' or arcpy.Describe(fc).shapeType == 'PolylineM' or arcpy.Describe(fc).shapeType == 'PolylineZ':
-            fx_interesse=arcpy.management.Dissolve(in_features=fx_interesse, out_feature_class='dissolved_fx')
+            fx_interesse=arcpy.management.Dissolve(in_features=fx_interesse, out_feature_class=os.path.join(junkspace,'dissolved_fx'))
             output = arcpy.Intersect_analysis([fx_interesse, dissolved_fc], os.path.join(gdb_quantitativo,'FxInteresse_x_'+filename))
             arcpy.AddField_management(output, 'Extensao', 'FLOAT')
-            if arcpy.Describe(fx_interesse).spatialReference.name == 'SIRGAS_2000':
-                arcpy.AddMessage('Realizando o calculo geodésico')
-                arcpy.CalculateField_management(output, 'Extensao', expression_geo_len, 'PYTHON')
-            else:
-                arcpy.CalculateField_management(output, 'Extensao', expression_proj_len, 'PYTHON')
+            arcpy.CalculateField_management(output, 'Extensao', expression_proj_len, 'PYTHON')
         elif arcpy.Describe(fc).shapeType == 'Polygon' or arcpy.Describe(fc).shapeType == 'PolygonM' or arcpy.Describe(fc).shapeType == 'PolygonZ':
-            fx_interesse=arcpy.management.Dissolve(in_features=fx_interesse, out_feature_class='dissolved_fx')
+            fx_interesse=arcpy.management.Dissolve(in_features=fx_interesse, out_feature_class=os.path.join(junkspace,'dissolved_fx'))
             output = arcpy.Intersect_analysis([fx_interesse, dissolved_fc], os.path.join(gdb_quantitativo,'FxInteresse_x_'+filename))
             arcpy.AddField_management(output, 'Area', 'FLOAT')
-            if arcpy.Describe(fx_interesse).spatialReference.name == 'SIRGAS_2000':
-                arcpy.AddMessage('Realizando o calculo geodésico')
-                arcpy.CalculateField_management(output, 'Area', expression_geo_area, 'PYTHON')
-            else:
-                arcpy.CalculateField_management(output, 'Area', expression_proj_area, 'PYTHON')
+            arcpy.CalculateField_management(output, 'Area', expression_proj_area, 'PYTHON')
 
 def ltnearfeature(fc,buffer,lt):
     dissolved_fc = dissolve(fc)[0]
@@ -477,17 +457,7 @@ if atualizar == 'true':
 else:
     pass
     
-def lista_dados_referenciais():
-    filenames = [
-        'Aerodromos_ANAC_2022',
-        'Aerogeradores_ANEEL_2023',
-        'Aglomerado_Rural_IBGE_2021',
-        'AI_Riqueza_CEMAVE_2019',
-        'Aldeias_Indigenas_FUNAI_2023',
-        'Linhas_Existentes_EPE',
-        'Biomas_IBGE'
-    ]
-    return filenames
+
 
 if temas_extra == '':
     arcpy.env.workspace = os.path.join(gdb_path, 'Temas')
