@@ -37,6 +37,8 @@ if os.listdir(junkspace) != []:
         os.remove(os.path.join(junkspace, file))
 
 
+
+
 def criavao(shape_lt, fx_interesse,vert_inicial):
     # Split at Vertices
     output_split = r'in_memory\"SplitVertices"'
@@ -244,12 +246,10 @@ def dissolve(fc):
     if filename in temas_extra:
         field_split = fields_tema_extra.split(';')
         fields_interesse = field_split
-        arcpy.AddMessage(fields_interesse)
         
     # Verifique se o campo "UF" existe no conjunto de features
     if 'UF' in [field.name for field in arcpy.ListFields(fc)]:
         fields_interesse.append('UF')
-        arcpy.AddMessage(fields_interesse)
     
 
     # Caminho de saída para o conjunto de features dissolvido
@@ -553,7 +553,7 @@ else:
     temas = arcpy.ListFeatureClasses()
     for fc in temas:
         if tema in fc:
-            arcpy.AddMessage(f'Processando {fc}')
+            arcpy.AddMessage(f'Processando {fc} - TEMA EXTRA')
             name_fc = os.path.basename(fc)
             lastname = name_fc.split('_x_')[-1]
             toexcel(os.path.join(gdb_path, 'Quantitativo', fc),lastname)
