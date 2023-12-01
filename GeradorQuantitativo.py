@@ -355,7 +355,7 @@ def ltnearfeature(fc,buffer,lt):
         arcpy.analysis.Near(in_features = dissolved_fc, near_features = lt, search_radius = buffer, method = 'GEODESIC')
     else:
         arcpy.analysis.Near(in_features = dissolved_fc, near_features = lt, search_radius = buffer)
-    expression = "round(!NEAR_DIST! / 1000.0, 2)"
+    expression = "round(!NEAR_DIST! / 1000.0, 4)"
     arcpy.CalculateField_management(dissolved_fc, 'Distancia', expression, "PYTHON")
     joinedfc = arcpy.management.JoinField(in_data=dissolved_fc, in_field='NEAR_FID', join_table=lt, join_field='OBJECTID')
     #arcpy.CalculateField_management(joinedfc, 'OBS', expression, "PYTHON")
@@ -368,6 +368,27 @@ def ltnearfeature(fc,buffer,lt):
         else:
             return ' '"""
     arcpy.management.CalculateField(in_table=output, field='OBS', expression='neardist(!NEAR_DIST!)', code_block=expression)
+
+def tradutor(excel):
+    for row in excel.iter_rows():
+        for cell in row:
+            if cell.value == 'Extensao':
+                cell.value = 'Extensão (km)'
+            if cell.value == 'Area':
+                cell.value = 'Área (ha)'
+            if cell.value == 'Eixo_X':
+                cell.value = 'Eixo X'
+            if cell.value == 'Eixo_Y':
+                cell.value = 'Eixo Y'
+            if cell.value == 'Paralelism':
+                cell.value = 'Paralelismo (Metros)'
+            if cell.value == 'Distancia':
+                cell.value = 'Distância (km)'
+            if cell.value == 'Vertices':
+                cell.value = 'Vértices'
+            if cell.value == 'OBS':
+                cell.value = 'Observação'
+            
 
 def toexcel(fc, related_field):
     campos_fc = [campo.name for campo in arcpy.ListFields(fc)]
@@ -411,19 +432,39 @@ def toexcel(fc, related_field):
         df.to_excel(excel_saida, index=False)
         arcpy.AddMessage(f'Planilha de quantitativo do tema {os.path.basename(fc)} gerado com sucesso!')
 
-
-#texto auxiliar:
     excel = os.path.join(pasta_quantitativo,os.path.basename(fc).split('_x_')[1], os.path.basename(fc)+'.xlsx')
     workbook = op.load_workbook(excel)
     sheet = workbook.active
+    #pinta a primeira linha de amarelo claro e negrito, mas não pinta além da última coluna
+    for cell in sheet[1]:
+        cell.fill = op.styles.PatternFill(start_color='eeb0ff', end_color='eeb0ff', fill_type='solid')
+        cell.font = op.styles.Font(bold=True)
+    #cria uma borda em volta da tabela
+    border = op.styles.Border(left=op.styles.Side(border_style='thin', color='000000'),
+                    right=op.styles.Side(border_style='thin', color='000000'),
+                    top=op.styles.Side(border_style='thin', color='000000'),
+                    bottom=op.styles.Side(border_style='thin', color='000000'))
+    for row in sheet:
+        for cell in row:
+            cell.border = border
+    #ajustar a largura da coluna pra 120 pixels cada coluna
+    for col in sheet.columns:
+        max_length = 0
+        column = col[0].column_letter
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(cell.value)
+            except:
+                pass
+        adjusted_width = (max_length + 30)
+        sheet.column_dimensions[column].width = adjusted_width
     if os.path.basename(fc).split('_x_')[0] == 'LT_Near':
         sheet.insert_rows(1)
-        sheet.insert_rows(2)
-        sheet['A1'] = fr'Relação de Distância do tema "{os.path.basename(fc).split("_x_")[1].replace("_"," ")}" com a LT'
         if os.path.basename(fc).split("_x_")[1] == 'Unidade de Conservação':
-            sheet['A2'] = fr'O raio da área de estudo utilizada foi de 50km'
+            sheet['A1'] = fr'Relação de Distância do tema "{os.path.basename(fc).split("_x_")[1].replace("_"," ")}" com a LT - Raio de 50km'
         else:
-            sheet['A2'] = fr'O raio da área de estudo utilizada foi de 10km'
+            sheet['A1'] = fr'Relação de Distância do tema "{os.path.basename(fc).split("_x_")[1].replace("_"," ")}" com a LT - Raio de 10km'
     elif os.path.basename(fc).split('_x_')[0] == 'LT':
         sheet.insert_rows(1)
         sheet['A1'] = fr'Extensão interceptada pelo tema "{os.path.basename(fc).split("_x_")[1].replace("_"," ")}" na Linha de Transmissão'
@@ -433,6 +474,19 @@ def toexcel(fc, related_field):
     elif os.path.basename(fc).split('_x_')[0] == 'Paralelismo':
         sheet.insert_rows(1)
         sheet['A1'] = fr'Relação de Paralelismo do tema "{os.path.basename(fc).split("_x_")[1].replace("_"," ")}" com a LT - Foi considerado paralelismo as linhas dentro da Faixa de Interesse'	
+    tradutor(sheet)
+    #mescla as celulas da primeira linha até o final da tabela
+    sheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(sheet[1]))
+
+    #quebra o texto da primeira linha e aumenta a altura da linha
+    sheet.row_dimensions[1].height = 50
+    #pinta de roxo escuro a primeira linha
+    for cell in sheet[1]:
+        cell.fill = op.styles.PatternFill(start_color='a570b3', end_color='a570b3', fill_type='solid')
+        cell.font = op.styles.Font(bold=True)
+        cell.alignment = op.styles.Alignment(horizontal='center', wrap_text=True, vertical = 'center')
+        cell.border = border
+
     workbook.save(excel)
 
 
