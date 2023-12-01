@@ -2,6 +2,7 @@ import arcpy
 import os.path
 import pandas as pd
 import numpy as np
+import openpyxl as op
 
 arcpy.env.overwriteOutput = True
 arcpy.env.addOutputsToMap = False
@@ -216,7 +217,8 @@ def lista_dados_referenciais():
     'AI_Riqueza_CEMAVE_2019',
     'Aldeias_Indigenas_FUNAI_2023',
     'Linhas_Existentes_EPE',
-    'Biomas_IBGE']
+    'Biomas_IBGE',
+    'Rios_ANA_2013']
     return filenames
 
 def dissolve(fc):
@@ -237,6 +239,8 @@ def dissolve(fc):
         fields_interesse.extend(['Concession'])
     elif filename == 'Biomas_IBGE':
         fields_interesse.extend(['Bioma'])
+    elif filename == 'Rios_ANA_2013':
+        fields_interesse.extend(['NORIOCOMP'])
     if filename in temas_extra:
         field_split = fields_tema_extra.split(';')
         fields_interesse = field_split
@@ -275,6 +279,8 @@ def fields(fc):
         fields_to_keep = dissolve(fc)[1]+['UF','Extensao','Vertices','Eixo_X','Eixo_Y']
     elif filename == 'Biomas_IBGE':
         fields_to_keep = dissolve(fc)[1]+['UF','Area','Extensao']
+    elif filename == 'Rios_ANA_2013':
+        fields_to_keep = dissolve(fc)[1]+['UF','Vertices','Extensao','Paralelism']
     if filename in temas_extra:
         fd = fields_extras.split(';')
         fields_to_keep = dissolve(fc)[1]+list(fd)+['OBS']
@@ -406,6 +412,29 @@ def toexcel(fc, related_field):
         arcpy.AddMessage(f'Planilha de quantitativo do tema {os.path.basename(fc)} gerado com sucesso!')
 
 
+#texto auxiliar:
+    excel = os.path.join(pasta_quantitativo,os.path.basename(fc).split('_x_')[1], os.path.basename(fc)+'.xlsx')
+    workbook = op.load_workbook(excel)
+    sheet = workbook.active
+    if os.path.basename(fc).split('_x_')[0] == 'LT_Near':
+        sheet.insert_rows(1)
+        sheet.insert_rows(2)
+        sheet['A1'] = fr'Relação de Distância do tema "{os.path.basename(fc).split("_x_")[1].replace("_"," ")}" com a LT'
+        if os.path.basename(fc).split("_x_")[1] == 'Unidade de Conservação':
+            sheet['A2'] = fr'O raio da área de estudo utilizada foi de 50km'
+        else:
+            sheet['A2'] = fr'O raio da área de estudo utilizada foi de 10km'
+    elif os.path.basename(fc).split('_x_')[0] == 'LT':
+        sheet.insert_rows(1)
+        sheet['A1'] = fr'Extensão interceptada pelo tema "{os.path.basename(fc).split("_x_")[1].replace("_"," ")}" na Linha de Transmissão'
+    elif os.path.basename(fc).split('_x_')[0] == 'FxInteresse':
+        sheet.insert_rows(1)
+        sheet['A1'] = fr' Extensão/Área interceptada pelo tema "{os.path.basename(fc).split("_x_")[1].replace("_"," ")}" na Faixa de Interesse'
+    elif os.path.basename(fc).split('_x_')[0] == 'Paralelismo':
+        sheet.insert_rows(1)
+        sheet['A1'] = fr'Relação de Paralelismo do tema "{os.path.basename(fc).split("_x_")[1].replace("_"," ")}" com a LT - Foi considerado paralelismo as linhas dentro da Faixa de Interesse'	
+    workbook.save(excel)
+
 
 if atualizar_vao == 'true':
     #deleta todos os feature classes na pasta dados caruso
@@ -456,6 +485,24 @@ if atualizar == 'true':
     project(gdb_path, temas_extra)
 else:
     pass
+
+def parallel(fc,lt,fx_interesse):
+    arcpy.MakeFeatureLayer_management(fc, 'fc_layer')
+    arcpy.SelectLayerByLocation_management('fc_layer', 'INTERSECT', fx_interesse)
+    arcpy.SplitLine_management('fc_layer', os.path.join(junkspace, 'split_lines'))
+    arcpy.MakeFeatureLayer_management(os.path.join(junkspace, 'split_lines'), 'split_lines_layer')
+    arcpy.SelectLayerByLocation_management('split_lines_layer', 'COMPLETELY_WITHIN', fx_interesse)
+    arcpy.CalculateField_management('split_lines_layer', 'Paralelism', '1', 'PYTHON')
+    arcpy.DeleteField_management('split_lines_layer', 'Extensao')
+    identity_output = arcpy.analysis.Identity('split_lines_layer', fx_interesse, os.path.join(junkspace, 'split_lines_identity'))
+    dissolve_output = arcpy.Dissolve_management(identity_output, os.path.join(junkspace, 'output_dissolve'),dissolve(os.path.basename(fc))[1]+['Paralelism','Vertices'])
+    dissolve_output_layer = arcpy.MakeFeatureLayer_management(dissolve_output, 'dissolve_output_layer')
+    lt_layer = arcpy.MakeFeatureLayer_management(lt, 'lt_layer')
+    arcpy.SelectLayerByLocation_management(dissolve_output_layer, 'INTERSECT', lt_layer,'','NEW_SELECTION','INVERT')
+    arcpy.CalculateField_management(dissolve_output_layer, 'Paralelism', '!shape.length@meters!', 'PYTHON')
+    output_lines_final = os.path.join(junkspace,fr'Paralelismo_{os.path.basename(fc)}')
+    arcpy.CopyFeatures_management(dissolve_output_layer, output_lines_final)
+    arcpy.conversion.FeatureClassToFeatureClass(output_lines_final, os.path.join(gdb_path,'Quantitativo'), fr'Paralelismo_x_{os.path.basename(fc)}')
     
 
 
@@ -476,16 +523,19 @@ if temas_extra == '':
             # Call ltxfeature and fxinteressexfeature functions
             ltxfeature(os.path.join(gdb_path, 'Temas', tema), lt)
             fxinteressexfeature(os.path.join(gdb_path, 'Temas', tema), fx_interesse)
+            if 'Paralelism' in fields(tema):
+                parallel(os.path.join(gdb_path, 'Temas', tema), lt, fx_interesse)
 else:
     tema = os.path.basename(temas_extra)
     arcpy.env.workspace = os.path.join(gdb_path, 'Temas')
     if 'Distancia' in fields(temas_extra):
         ltnearfeature(os.path.join(gdb_path, 'Temas', tema), '10000 Meters', lt)
+    if 'Paralelism' in fields(temas_extra):
+        parallel(os.path.join(gdb_path, 'Temas', tema), lt, fx_interesse)
     
     # Call ltxfeature and fxinteressexfeature functions
     ltxfeature(os.path.join(gdb_path, 'Temas', tema), lt)
     fxinteressexfeature(os.path.join(gdb_path, 'Temas', tema), fx_interesse)
-
 
 
 if temas_extra == '':
