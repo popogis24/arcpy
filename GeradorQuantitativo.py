@@ -213,36 +213,204 @@ def project(gdb,temas_extra):
 
 def lista_dados_referenciais():
     filenames = [
-    'Aerodromos_ANAC_2022',
-    'Aerogeradores_ANEEL_2023',
-    'Aglomerado_Rural_IBGE_2021',
-    'AI_Riqueza_CEMAVE_2019',
-    'Aldeias_Indigenas_FUNAI_2023',
-    'Linhas_Existentes_EPE',
-    'Biomas_IBGE',
-    'Rios_ANA_2013']
+        'Adutoras_SNIRH_ANA_2021',
+        'Aerodromos_ANAC_2022',
+        'Aerogeradores_ANEEL_2023',
+        'APCB_Amazonia',
+        'APCB_Caatinga',
+        'APCB_Cerrado_Pantanal',
+        'APCB_Mata_Atlantica',
+        'APCB_ZonaCosteira',
+        'Aves_Migratorias_Areas_Ameacadas_CEMAVE_2022',
+        'Aves_Migratorias_Areas_Concentracao_CEMAVE_2022',
+        'Bases_de_Combustíveis_EPE',
+        'Bases_de_GLP_EPE',
+        'Biomas_IBGE_2019_250000',
+        'Blocos_Disponiveis_OPC_1009_ANP',
+        'Cavidades_CANIE_19122022',
+        'Centrais_Geradoras_Hidrelétricas_CGH_ANEEL',
+        'CGH_Base_Existente_EPE',
+        'CGH_Expansao_Planejada_EPE',
+        'Conservacao_Aves_IBAS',
+        'Dutos_de_escoamento_EPE',
+        'Dutovias_MINFRA_2018',
+        'EOL_Base_Existente_EPE',
+        'EOL_Expansao_Planejada_EPE',
+        'Ferrovias_MINFRA',
+        'Gasodutos_de_distribuição_EPE_2023',
+        'Gasodutos_de_transporte_EPE_2023',
+        'Geologia_IBGE',
+        'Geomorfologia_IBGE',
+        'Hidrovias_ANTAQ',
+        'IBAs_MataAtlantica_SaveBrasil_2023',
+        'Lei_Mata_Atlantica_MMA',
+        'Localidades_IBGE_2010',
+        'LT_Existente_EPE_2023',
+        'LT_Planejada_EPE_2023',
+        'Municipios_2022_IBGE',
+        'Ocorrencias_Fossiliferas_CPRM',
+        'PCH_Base_Existente_EPE',
+        'PCH_Expansao_Planejada_EPE_2023',
+        'Pedologia_IBGE',
+        'Pequenas_Centrais_Hidrelétricas_PCH_ANEEL',
+        'Pivo_Central_Irrigacao_ANA_2019',
+        'Plantas_de_biodiesel_EPE',
+        'Plantas_de_etanol_EPE',
+        'Polos_de_processamento_de_gás_natural_EPE',
+        'Potencial_Cavidades_ICMBio',
+        'Reserva_Biodiversidade_Mata_Atlantica_RBMA',
+        'Rodovia_Estadual_DNIT',
+        'Rodovia_Federal_DNIT',
+        'RPPNs_ICMBio',
+        'Sitios_Arqueologicos_IPHAN',
+        'Subestações_Base_Existente_EPE_2023',
+        'Subestacoes_Expansao_Planejada_EPE_2023',
+        'Terminais_de_Petroleo_e_Derivados_EPE',
+        'Territorios_Quilombolas_INCRA_2023',
+        'Terras_Indigenas_FUNAI',
+        'Trecho_Drenagem_ANA_2013',
+        'UHE_Base_Existente_EPE_2023',
+        'Unidades_de_Conservacao_MMA',
+        'Usina_Fotovoltaica_UFV_ANEEL_2023',
+        'Usina_Termeletricas_UTE_ANEEL_2023',
+        'Usinas_Hidrelétricas_UHE_ANEEL_2023',
+        'UTE_Biomassa_Existente_EPE_2023',
+        'Vegetacao_IBGE',
+        'Vilas_IBGE_2021']
     return filenames
 
 def dissolve(fc):
     arcpy.env.overwriteOutput = True
     filename = os.path.basename(fc)
     fields_interesse = []
-    if filename == 'Aerodromos_ANAC_2022':
-        fields_interesse.extend(['Codigo_OAC','Tipo','CIAD'])
+    if filename == 'Adutoras_SNIRH_ANA_2021'
+        fields_interesse = ['nm_adt_adu','adt_status','adt_uf']
+    elif filename == 'Aerodromos_ANAC_2022':
+        fields_interesse = ['Codigo_OAC','CIAD','Denominaca']
     elif filename == 'Aerogeradores_ANEEL_2023':
-        fields_interesse.extend(['NOME_EOL','EOL_VERSAO'])
-    elif filename == 'Aglomerado_Rural_IBGE_2021':
-        fields_interesse.extend(['nome'])
-    elif filename == 'AI_Riqueza_CEMAVE_2019':
-        fields_interesse = []
-    elif filename == 'Aldeias_Indigenas_FUNAI_2023':
-        fields_interesse.extend(['nomuf','nome_aldei'])
-    elif filename == 'Linhas_Existentes_EPE':
-        fields_interesse.extend(['Concession'])
-    elif filename == 'Biomas_IBGE':
-        fields_interesse.extend(['Bioma'])
-    elif filename == 'Rios_ANA_2013':
-        fields_interesse.extend(['NORIOCOMP'])
+        fields_interesse = ['NOME_EOL','DEN_AEG','POT_MW','CEG','OPERACAO']
+    elif filename == 'APCB_Amazonia':
+        fields_interesse = ['Import_bio','Prior_acao','COD_Area']
+    elif filename == 'APCB_Caatinga':
+        fields_interesse = ['Import_bio','Prior_acao','COD_area','Nome_area']
+    elif filename == 'APCB_Cerrado_Pantanal':
+        fields_interesse = ['Import_bio','Prior_acao','COD_area','NOME']
+    elif filename == 'APCB_Mata_Atlantica':
+        fields_interesse = ['ImportBio','Prioridade','COD_area']
+    elif filename == 'APCB_ZonaCosteira':
+        fields_interesse = ['NOME_AP','IMP','PRIO']
+    elif filename == 'Aves_Migratorias_Areas_Ameacadas_CEMAVE_2022':
+        fields_interesse = []#não tem campos de interesse, verificar se não vai ter bug
+    elif filename == 'Aves_Migratorias_Areas_Concentracao_CEMAVE_2022':
+        fields_interesse = []#não tem campos de interesse, verificar se não vai ter bug
+    elif filename == 'Bases_de_Combustíveis_EPE':
+        fields_interesse = ['nome_base','munic']
+    elif filename == 'Bases_de_GLP_EPE':
+        fields_interesse = ['nome_base','munic','razao_soci']
+    elif filename == 'Biomas_IBGE_2019_250000':
+        fields_interesse = ['Bioma']
+    elif filename == 'Blocos_Disponiveis_OPC_1009_ANP':
+        fields_interesse = ['nome_bacia','nomenclatu','nome_setor']
+    elif filename == 'Cavidades_CANIE_19122022':
+        fields_interesse = ['Caverna','Municipio','Localidade']
+    elif filename == 'Centrais_Geradoras_Hidrelétricas_CGH_ANEEL':
+        fields_interesse = ['NOME']
+    elif filename == 'CGH_Base_Existente_EPE':
+        fields_interesse = ['NOME']
+    elif filename == 'CGH_Expansao_Planejada_EPE':
+        fields_interesse = ['Nome']
+    elif filename == 'Conservacao_Aves_IBAS':
+        fields_interesse = ['Nome_1']
+    elif filename == 'Dutos_de_escoamento_EPE':
+        fields_interesse = ['Nome_Dut_1','Categoria']
+    elif filename == 'Dutovias_MINFRA_2018':
+        fields_interesse = ['Nome_Duto']
+    elif filename == 'EOL_Base_Existente_EPE':
+        fields_interesse = ['Nome']
+    elif filename == 'EOL_Expansao_Planejada_EPE':
+        fields_interesse = ['nome']
+    elif filename == 'Ferrovias_MINFRA':
+        fields_interesse = ['tip_situac','bitola']
+    elif filename == 'Gasodutos_de_distribuição_EPE_2023':
+        fields_interesse = ['Distrib']
+    elif filename == 'Gasodutos_de_transporte_EPE_2023':
+        fields_interesse = ['Nome_Dut_1','Categoria']
+    elif filename == 'Geologia_IBGE':
+        fields_interesse = ['nm_unidade']
+    elif filename == 'Geomorfologia_IBGE':
+        fields_interesse = ['nm_unidade']
+    elif filename == 'Hidrovias_ANTAQ':
+        fields_interesse = ['HID_NM','HID_DS_CUR']
+    elif filename == 'IBAs_MataAtlantica_SaveBrasil_2023':
+        fields_interesse = ['Nome_1','Bioma']
+    elif filename == 'Lei_Mata_Atlantica_MMA':
+        fields_interesse = []#não tem campos de interesse, verificar se não vai ter bug
+    elif filename == 'Localidades_IBGE_2010':
+        fields_interesse = ['NM_LOCALID']
+    elif filename == 'LT_Existente_EPE_2023':
+        fields_interesse = ['Nome','Tensao','Ano_opera']
+    elif filename == 'LT_Planejada_EPE_2023':
+        fields_interesse = ['Nome','Tensao']
+    elif filename == 'Municipios_2022_IBGE':
+        fields_interesse = ['NM_MUNICIP','SIGLA_UF']
+    elif filename == 'Ocorrencias_Fossiliferas_CPRM':
+        fields_interesse = ['LOCALIDADE']
+    elif filename == 'PCH_Base_Existente_EPE':
+        fields_interesse = ['NOME']
+    elif filename == 'PCH_Expansao_Planejada_EPE_2023':
+        fields_interesse = ['nome']
+    elif filename == 'Pedologia_IBGE':
+        fields_interesse = ['legenda']
+    elif filename == 'Pequenas_Centrais_Hidrelétricas_PCH_ANEEL':
+        fields_interesse = ['NOME']
+    elif filename == 'Pivo_Central_Irrigacao_ANA_2019':
+        fields_interesse = ['NM_MUNICIP']
+    elif filename == 'Plantas_de_biodiesel_EPE':
+        fields_interesse = ['Nome']
+    elif filename == 'Plantas_de_etanol_EPE':
+        fields_interesse = ['Nome']
+    elif filename == 'Polos_de_processamento_de_gás_natural_EPE':
+        fields_interesse = ['Nome']
+    elif filename == 'Potencial_Cavidades_ICMBio':
+        fields_interesse = ['GRAU_DE_PO']
+    elif filename == 'Reserva_Biodiversidade_Mata_Atlantica_RBMA':
+        fields_interesse = ['CLASSE']
+    elif filename == 'Rodovia_Estadual_DNIT':
+        fields_interesse =['Tipo_Trech','Unidade_Fe','Codigo_Rod']
+    elif filename == 'Rodovia_Federal_DNIT':
+        fields_interesse =['Nome_Tipo','Codigo_BR']
+    elif filename == 'RPPNs_ICMBio':
+        fields_interesse = ['nome']
+    elif filename == 'Sitios_Arqueologicos_IPHAN':
+        fields_interesse = ['identifica']
+    elif filename == 'Subestações_Base_Existente_EPE_2023':
+        fields_interesse = ['Nome','Tensao','Ano_Opera']
+    elif filename == 'Subestacoes_Expansao_Planejada_EPE_2023':
+        fields_interesse = ['Nome','Tensao','Ano_Opera']
+    elif filename == 'Terminais_de_Petroleo_e_Derivados_EPE':
+        fields_interesse = ['nome_ter','munic']
+    elif filename == 'Territorios_Quilombolas_INCRA_2023':
+        fields_interesse = ['nm_comunid','nm_municip','nr_process','fase','responsave']
+    elif filename == 'Terras_Indigenas_FUNAI':
+        fields_interesse = ['terrai_nom','municipio','etnia_nome']
+    elif filename == 'Trecho_Drenagem_ANA_2013':
+        fields_interesse = []#não tem campos de interesse, verificar se não vai ter bug
+    elif filename == 'UHE_Base_Existente_EPE_2023':
+        fields_interesse = ['NOME']
+    elif filename == 'Unidades_de_Conservacao_MMA':
+        fields_interesse =['NOME_UC1','CATEGORI3','ESFERA5','GRUPO4','ANO_CRIA6']
+    elif filename == 'Usina_Fotovoltaica_UFV_ANEEL_2023':
+        fields_interesse = ['nome','munic']
+    elif filename == 'Usina_Termeletricas_UTE_ANEEL_2023':
+        fields_interesse = ['nome']
+    elif filename == 'Usinas_Hidrelétricas_UHE_ANEEL_2023':
+        fields_interesse = ['NOME']
+    elif filename == 'UTE_Biomassa_Existente_EPE_2023':
+        fields_interesse = ['nome']
+    elif filename == 'Vegetacao_IBGE':
+        fields_interesse = ['legenda']
+    elif filename == 'Vilas_IBGE_2021':
+        fields_interesse = ['nome']
     if filename in temas_extra:
         field_split = fields_tema_extra.split(';')
         fields_interesse = field_split
@@ -264,23 +432,134 @@ def dissolve(fc):
 def fields(fc):
     filename = os.path.basename(fc)
     fields_to_keep = []
-    #caso o tema esteja nessa lista, ele
-    if filename == 'Aerodromos_ANAC_2022':
-        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
+    if filename == 'Adutoras_SNIRH_ANA_2021':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
+    elif filename == 'Aerodromos_ANAC_2022':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
     elif filename == 'Aerogeradores_ANEEL_2023':
-        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
-    elif filename == 'Aglomerado_Rural_IBGE_2021':
-        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices']
-    elif filename == 'AI_Riqueza_CEMAVE_2019':
-        fields_to_keep = dissolve(fc)[1]+['UF','Area','Distancia','Extensao','Vertices','OBS']
-    elif filename == 'Aldeias_Indigenas_FUNAI_2023':
-        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','OBS']
-    elif filename == 'Linhas_Existentes_EPE':
-        fields_to_keep = dissolve(fc)[1]+['UF','Extensao','Vertices','Eixo_X','Eixo_Y']
-    elif filename == 'Biomas_IBGE':
-        fields_to_keep = dissolve(fc)[1]+['UF','Area','Extensao']
-    elif filename == 'Rios_ANA_2013':
-        fields_to_keep = dissolve(fc)[1]+['UF','Vertices','Extensao','Paralelism']
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
+    elif filename == 'APCB_Amazonia':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Extensao','Area','Vertices','OBS']
+    elif filename == 'APCB_Caatinga':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Extensao','Area','Vertices','OBS']
+    elif filename == 'APCB_Cerrado_Pantanal':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Extensao','Area','Vertices','OBS']
+    elif filename == 'APCB_Mata_Atlantica':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Extensao','Area','Vertices','OBS']
+    elif filename == 'APCB_ZonaCosteira':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Extensao','Area','Vertices','OBS']
+    elif filename == 'Aves_Migratorias_Areas_Ameacadas_CEMAVE_2022':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Extensao','Area','Vertices','OBS']
+    elif filename == 'Aves_Migratorias_Areas_Concentracao_CEMAVE_2022':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Extensao','Area','Vertices','OBS']
+    elif filename == 'Bases_de_Combustíveis_EPE':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
+    elif filename == 'Bases_de_GLP_EPE':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
+    elif filename == 'Biomas_IBGE_2019_250000':
+        fields_to_keep = dissolve(fc)[1]+['UF','Extensao','Area']
+    elif filename == 'Blocos_Disponiveis_OPC_1009_ANP':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Extensao','Area','Vertices','OBS']
+    elif filename == 'Cavidades_CANIE_2022':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
+    elif filename == 'Centrais_Geradoras_Hidrelétricas_CGH_ANEEL':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
+    elif filename == 'CGH_Base_Existente_EPE':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
+    elif filename == 'CGH_Expansao_Planejada_EPE':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
+    elif filename == 'Conservacao_Aves_IBAS':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Extensao','Area','Vertices','OBS']
+    elif filename == 'Dutos_de_escoamento_EPE':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Extensao','Vertices','Paralelism']
+    elif filename == 'Dutovias_MINFRA_2018':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Extensao','Vertices','Paralelism']
+    elif filename == 'EOL_Base_Existente_EPE':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
+    elif filename == 'EOL_Expansao_Planejada_EPE':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
+    elif filename == 'Ferrovias_MINFRA':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Extensao','Vertices','Paralelism']
+    elif filename == 'Gasodutos_de_distribuição_EPE_2023':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Extensao','Vertices','Paralelism']
+    elif filename == 'Gasodutos_de_transporte_EPE_2023':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Extensao','Vertices','Paralelism']
+    elif filename == 'Geologia_IBGE':
+        fields_to_keep = dissolve(fc)[1]+['UF','Extensao','Area']
+    elif filename == 'Geomorfologia_IBGE':
+        fields_to_keep = dissolve(fc)[1]+['UF','Extensao','Area']
+    elif filename == 'Hidrovias_ANTAQ':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Extensao','Vertices','Paralelism']
+    elif filename == 'IBAs_MataAtlantica_SaveBrasil_2023':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Extensao','Area','Vertices','OBS']
+    elif filename == 'Lei_Mata_Atlantica_MMA':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Extensao','Area','Vertices','OBS']
+    elif filename == 'Localidades_IBGE_2010':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
+    elif filename == 'LT_Existente_EPE_2023':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Extensao','Vertices','Paralelism']
+    elif filename == 'LT_Planejada_EPE_2023':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Extensao','Vertices','Paralelism']
+    elif filename == 'Municipios_2022_IBGE':
+        fields_to_keep = dissolve(fc)[1]+['UF','Extensao','Area','Vertices']
+    elif filename == 'Ocorrencias_Fossiliferas_CPRM':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
+    elif filename == 'PCH_Base_Existente_EPE':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
+    elif filename == 'PCH_Expansao_Planejada_EPE_2023':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
+    elif filename == 'Pedologia_IBGE':
+        fields_to_keep = dissolve(fc)[1]+['UF','Extensao','Area']
+    elif filename == 'Pequenas_Centrais_Hidrelétricas_PCH_ANEEL':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
+    elif filename == 'Pivo_Central_Irrigacao_ANA_2019':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Extensao','Area','Vertices','OBS']
+    elif filename == 'Plantas_de_biodiesel_EPE':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
+    elif filename == 'Plantas_de_etanol_EPE':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
+    elif filename == 'Polos_de_processamento_de_gás_natural_EPE':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
+    elif filename == 'Potencial_Cavidades_ICMBio':
+        fields_to_keep = dissolve(fc)[1]+['UF','Extensao','Area']
+    elif filename == 'Reserva_Biodiversidade_Mata_Atlantica_RBMA':
+        fields_to_keep = dissolve(fc)[1]+['UF','Extensao','Area']
+    elif filename == 'Rodovia_Estadual_DNIT':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Extensao','Vertices','Paralelism']
+    elif filename == 'Rodovia_Federal_DNIT':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Extensao','Vertices','Paralelism']
+    elif filename == 'RPPNs_ICMBio':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Extensao','Area','Vertices','OBS']
+    elif filename == 'Sitios_Arqueologicos_IPHAN':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
+    elif filename == 'Subestações_Base_Existente_EPE_2023':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
+    elif filename == 'Subestacoes_Expansao_Planejada_EPE_2023':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
+    elif filename == 'Terminais_de_Petroleo_e_Derivados_EPE':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
+    elif filename == 'Territorios_Quilombolas_INCRA_2023':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Extensao','Area','Vertices','OBS']
+    elif filename == 'Terras_Indigenas_FUNAI':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Extensao','Area','Vertices','OBS']
+    elif filename == 'Trecho_Drenagem_ANA_2013':
+        fields_to_keep = dissolve(fc)[1]+['UF','Extensao','Eixo_X','Eixo_Y']
+    elif filename == 'UHE_Base_Existente_EPE_2023':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
+    elif filename == 'Unidades_de_Conservacao_MMA':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Extensao','Area','Vertices','OBS']
+    elif filename == 'Usina_Fotovoltaica_UFV_ANEEL_2023':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
+    elif filename == 'Usina_Termeletricas_UTE_ANEEL_2023':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
+    elif filename == 'Usinas_Hidrelétricas_UHE_ANEEL_2023':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
+    elif filename == 'UTE_Biomassa_Existente_EPE_2023':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
+    elif filename == 'Vegetacao_IBGE':
+        fields_to_keep = dissolve(fc)[1]+['UF','Extensao','Area']
+    elif filename == 'Vilas_IBGE_2021':
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
     if filename in temas_extra:
         fd = fields_extras.split(';')
         fields_to_keep = dissolve(fc)[1]+list(fd)+['OBS']
@@ -302,9 +581,7 @@ def ltxfeature(fc, lt):
         elif arcpy.Describe(fc).shapeType == 'Polygon' or arcpy.Describe(fc).shapeType == 'PolygonM' or arcpy.Describe(fc).shapeType == 'PolygonZ':
             output = arcpy.analysis.Intersect(in_features=[lt, dissolved_fc], out_feature_class=os.path.join(gdb_quantitativo,'LT_x_'+filename), output_type='LINE')
             arcpy.AddField_management(output, 'Area', 'FLOAT')
-            expression_geo = '!SHAPE.geodesicLength@KILOMETERS!'
-            expression_proj = '!shape.length@kilometers!'
-            if arcpy.Describe(lt).spatialReference.name == 'SIRGAS_2000':
+            if geodesic == 'true':
                 arcpy.CalculateField_management(output, 'Extensao', expression_geo, 'PYTHON')
             else:
                 arcpy.CalculateField_management(output, 'Extensao', expression_proj, 'PYTHON')
@@ -318,7 +595,7 @@ def ltxfeature(fc, lt):
             lt=arcpy.management.Dissolve(in_features=lt, out_feature_class=os.path.join(junkspace,'dissolved_lt'))
             output = arcpy.analysis.Intersect(in_features=[lt, dissolved_fc], out_feature_class=os.path.join(gdb_quantitativo,'LT_x_'+filename), output_type='LINE')
             arcpy.AddField_management(output, 'Area', 'FLOAT')
-            if arcpy.Describe(lt).spatialReference.name == 'SIRGAS_2000':
+            if geodesic == 'true':
                 arcpy.CalculateField_management(output, 'Extensao', expression_geo, 'PYTHON')
             else:
                 arcpy.CalculateField_management(output, 'Extensao', expression_proj, 'PYTHON')
@@ -326,6 +603,8 @@ def ltxfeature(fc, lt):
 def fxinteressexfeature(fc, fx_interesse):
     expression_proj_len = '!shape.length@kilometers!'
     expression_proj_area = '!shape.area@hectares!'
+    expression_geo_area = '!SHAPE.geodesicArea@HECTARES!'
+    expression_geo_len = '!SHAPE.geodesicLength@KILOMETERS!'
     dissolved_fc = dissolve(fc)[0]
     filename = os.path.basename(fc)
     if "Vertices" in fields(fc):
@@ -336,18 +615,27 @@ def fxinteressexfeature(fc, fx_interesse):
         elif arcpy.Describe(fc).shapeType == 'Polygon' or arcpy.Describe(fc).shapeType == 'PolygonM' or arcpy.Describe(fc).shapeType == 'PolygonZ':
             output = arcpy.Intersect_analysis([fx_interesse, dissolved_fc], os.path.join(gdb_quantitativo,'FxInteresse_x_'+filename))
             arcpy.AddField_management(output, 'Area', 'FLOAT')
-            arcpy.CalculateField_management(output, 'Area', expression_proj_area, 'PYTHON')
+            if geodesic == 'true':
+                arcpy.CalculateField_management(output, 'Area', expression_geo_area, 'PYTHON')
+            else:
+                arcpy.CalculateField_management(output, 'Area', expression_proj_area, 'PYTHON')
     elif "Vertices" not in fields(fc):
         if arcpy.Describe(fc).shapeType == 'Polyline' or arcpy.Describe(fc).shapeType == 'PolylineM' or arcpy.Describe(fc).shapeType == 'PolylineZ':
             fx_interesse=arcpy.management.Dissolve(in_features=fx_interesse, out_feature_class=os.path.join(junkspace,'dissolved_fx'))
             output = arcpy.Intersect_analysis([fx_interesse, dissolved_fc], os.path.join(gdb_quantitativo,'FxInteresse_x_'+filename))
             arcpy.AddField_management(output, 'Extensao', 'FLOAT')
-            arcpy.CalculateField_management(output, 'Extensao', expression_proj_len, 'PYTHON')
+            if geodesic == 'true':
+                arcpy.CalculateField_management(output, 'Extensao', expression_geo_len, 'PYTHON')
+            else:
+                arcpy.CalculateField_management(output, 'Extensao', expression_proj_len, 'PYTHON')
         elif arcpy.Describe(fc).shapeType == 'Polygon' or arcpy.Describe(fc).shapeType == 'PolygonM' or arcpy.Describe(fc).shapeType == 'PolygonZ':
             fx_interesse=arcpy.management.Dissolve(in_features=fx_interesse, out_feature_class=os.path.join(junkspace,'dissolved_fx'))
             output = arcpy.Intersect_analysis([fx_interesse, dissolved_fc], os.path.join(gdb_quantitativo,'FxInteresse_x_'+filename))
             arcpy.AddField_management(output, 'Area', 'FLOAT')
-            arcpy.CalculateField_management(output, 'Area', expression_proj_area, 'PYTHON')
+            if geodesic == 'true':
+                arcpy.CalculateField_management(output, 'Area', expression_geo_area, 'PYTHON')
+            else:
+                arcpy.CalculateField_management(output, 'Area', expression_proj_area, 'PYTHON')
 
 def ltnearfeature(fc,buffer,lt):
     dissolved_fc = dissolve(fc)[0]
@@ -467,7 +755,7 @@ def toexcel(fc, related_field):
             sheet['A1'] = fr'Relação de Distância do tema "{os.path.basename(fc).split("_x_")[1].replace("_"," ")}" com a LT - Raio de 10km'
     elif os.path.basename(fc).split('_x_')[0] == 'LT':
         sheet.insert_rows(1)
-        sheet['A1'] = fr'Extensão interceptada pelo tema "{os.path.basename(fc).split("_x_")[1].replace("_"," ")}" na Linha de Transmissão'
+        sheet['A1'] = fr'Extensão/Coordenada interceptada pelo tema "{os.path.basename(fc).split("_x_")[1].replace("_"," ")}" na Linha de Transmissão'
     elif os.path.basename(fc).split('_x_')[0] == 'FxInteresse':
         sheet.insert_rows(1)
         sheet['A1'] = fr' Extensão/Área interceptada pelo tema "{os.path.basename(fc).split("_x_")[1].replace("_"," ")}" na Faixa de Interesse'
