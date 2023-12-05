@@ -163,9 +163,6 @@ def criavao(shape_lt, fx_interesse,vert_inicial):
 
         # Append the features from erase_getcount to no_over_final using the defined field mappings
         arcpy.management.Append(inputs=erase_getcount, target=no_over_final, schema_type='NO_TEST', field_mapping=field_mappings)
-
-
-
     # Salvar a feature class no geodatabase de saída com nome "Faixa_Servidao"
     try: 
         output_faixa_servidao = arcpy.CopyFeatures_management(no_over, os.path.join(gdb_path,'Dados_Caruso','Vao_FxInteresse'))
@@ -188,11 +185,11 @@ def project(gdb,temas_extra):
         if 'UF' in fields_extras:
             fc_intersect = arcpy.analysis.Identity(temas_extra, divisao_estadual, os.path.join(junkspace,fr'div_{temas_extra_name}'))
             fc_layer = arcpy.management.MakeFeatureLayer(fc_intersect, 'fc_layer')
-            fc_select = arcpy.management.SelectLayerByLocation(in_layer=fc_layer, overlap_type='WITHIN_A_DISTANCE', select_features=lt_inteira, search_distance='50000 Meters')
+            fc_select = arcpy.management.SelectLayerByLocation(in_layer=fc_layer, overlap_type='WITHIN_A_DISTANCE', select_features=lt_inteira, search_distance='60000 Meters')
             arcpy.conversion.FeatureClassToFeatureClass(fc_select, os.path.join(gdb, 'Temas'),temas_extra_name)
         elif 'UF' not in fields_extras:
             fc_layer = arcpy.management.MakeFeatureLayer(temas_extra, 'fc_layer')
-            fc_select = arcpy.management.SelectLayerByLocation(in_layer=fc_layer, overlap_type='WITHIN_A_DISTANCE', select_features=lt_inteira, search_distance='50000 Meters')
+            fc_select = arcpy.management.SelectLayerByLocation(in_layer=fc_layer, overlap_type='WITHIN_A_DISTANCE', select_features=lt_inteira, search_distance='60000 Meters')
             arcpy.conversion.FeatureClassToFeatureClass(fc_select, os.path.join(gdb, 'Temas'),temas_extra_name)
     else:
         for fc in feature_classes:
@@ -202,13 +199,15 @@ def project(gdb,temas_extra):
                 fc_intersect = arcpy.analysis.Identity(fc, divisao_estadual, os.path.join(junkspace,fr'div_{filename}'))
                 #select by location para selecionar apenas os poligonos que estao em um raio de 50km da lt
                 fc_layer = arcpy.management.MakeFeatureLayer(fc_intersect, 'fc_layer')
-                fc_select = arcpy.management.SelectLayerByLocation(in_layer=fc_layer, overlap_type='WITHIN_A_DISTANCE', select_features=lt_inteira, search_distance='50000 Meters')
+                fc_select = arcpy.management.SelectLayerByLocation(in_layer=fc_layer, overlap_type='WITHIN_A_DISTANCE', select_features=lt_inteira, search_distance='60000 Meters')
                 arcpy.conversion.FeatureClassToFeatureClass(fc_select, os.path.join(gdb, 'Temas'),filename)
+                arcpy.AddMessage(fr'Tema {fc} adicionado ao dataset "Temas"')
             elif 'UF' not in fields(fc):
                 #make feature layer
                 fc_layer = arcpy.management.MakeFeatureLayer(fc, 'fc_layer')
-                fc_select = arcpy.management.SelectLayerByLocation(in_layer=fc_layer, overlap_type='WITHIN_A_DISTANCE', select_features=lt_inteira, search_distance='50000 Meters')
+                fc_select = arcpy.management.SelectLayerByLocation(in_layer=fc_layer, overlap_type='WITHIN_A_DISTANCE', select_features=lt_inteira, search_distance='60000 Meters')
                 arcpy.conversion.FeatureClassToFeatureClass(fc_select, os.path.join(gdb, 'Temas'),filename)
+                arcpy.AddMessage(fr'Tema {fc} adicionado ao dataset "Temas"')
     arcpy.AddMessage('Temas adicionados ao geodatabase local')
 
 def lista_dados_referenciais():
@@ -247,7 +246,7 @@ def lista_dados_referenciais():
         'Localidades_IBGE_2010',
         'LT_Existente_EPE_2023',
         'LT_Planejada_EPE_2023',
-        'Municipios_2022_IBGE',
+        'Municipios_IBGE_2022',
         'Ocorrencias_Fossiliferas_CPRM',
         'PCH_Base_Existente_EPE',
         'PCH_Expansao_Planejada_EPE_2023',
@@ -283,8 +282,8 @@ def dissolve(fc):
     arcpy.env.overwriteOutput = True
     filename = os.path.basename(fc)
     fields_interesse = []
-    if filename == 'Adutoras_SNIRH_ANA_2021'
-        fields_interesse = ['nm_adt_adu','adt_status','adt_uf']
+    if filename == 'Adutoras_SNIRH_ANA_2021':
+        fields_interesse = ['adt_nm_adu','adt_status']
     elif filename == 'Aerodromos_ANAC_2022':
         fields_interesse = ['Codigo_OAC','CIAD','Denominaca']
     elif filename == 'Aerogeradores_ANEEL_2023':
@@ -296,7 +295,7 @@ def dissolve(fc):
     elif filename == 'APCB_Cerrado_Pantanal':
         fields_interesse = ['Import_bio','Prior_acao','COD_area','NOME']
     elif filename == 'APCB_Mata_Atlantica':
-        fields_interesse = ['ImportBio','Prioridade','COD_area']
+        fields_interesse = ['ImportBio_','Prioridade','COD_area']
     elif filename == 'APCB_ZonaCosteira':
         fields_interesse = ['NOME_AP','IMP','PRIO']
     elif filename == 'Aves_Migratorias_Areas_Ameacadas_CEMAVE_2022':
@@ -351,8 +350,8 @@ def dissolve(fc):
         fields_interesse = ['Nome','Tensao','Ano_opera']
     elif filename == 'LT_Planejada_EPE_2023':
         fields_interesse = ['Nome','Tensao']
-    elif filename == 'Municipios_2022_IBGE':
-        fields_interesse = ['NM_MUNICIP','SIGLA_UF']
+    elif filename == 'Municipios_IBGE_2022':
+        fields_interesse = ['NM_MUN']
     elif filename == 'Ocorrencias_Fossiliferas_CPRM':
         fields_interesse = ['LOCALIDADE']
     elif filename == 'PCH_Base_Existente_EPE':
@@ -376,9 +375,9 @@ def dissolve(fc):
     elif filename == 'Reserva_Biodiversidade_Mata_Atlantica_RBMA':
         fields_interesse = ['CLASSE']
     elif filename == 'Rodovia_Estadual_DNIT':
-        fields_interesse =['Tipo_Trech','Unidade_Fe','Codigo_Rod']
+        fields_interesse =['Unidade_Fe','Codigo_Rod']
     elif filename == 'Rodovia_Federal_DNIT':
-        fields_interesse =['Nome_Tipo','Codigo_BR']
+        fields_interesse =['Codigo_BR']
     elif filename == 'RPPNs_ICMBio':
         fields_interesse = ['nome']
     elif filename == 'Sitios_Arqueologicos_IPHAN':
@@ -392,7 +391,7 @@ def dissolve(fc):
     elif filename == 'Territorios_Quilombolas_INCRA_2023':
         fields_interesse = ['nm_comunid','nm_municip','nr_process','fase','responsave']
     elif filename == 'Terras_Indigenas_FUNAI':
-        fields_interesse = ['terrai_nom','municipio','etnia_nome']
+        fields_interesse = ['terrai_nom','municipio_','etnia_nome']
     elif filename == 'Trecho_Drenagem_ANA_2013':
         fields_interesse = []#não tem campos de interesse, verificar se não vai ter bug
     elif filename == 'UHE_Base_Existente_EPE_2023':
@@ -418,14 +417,22 @@ def dissolve(fc):
     # Verifique se o campo "UF" existe no conjunto de features
     if 'UF' in [field.name for field in arcpy.ListFields(fc)]:
         fields_interesse.append('UF')
-    
+
 
     # Caminho de saída para o conjunto de features dissolvido
     output_path = os.path.join(junkspace, f"{filename}_dissolved")
     output_path = arcpy.CreateUniqueName(output_path)
-
-    # Dissolva o conjunto de features com base nos campos de interesse
-    output = arcpy.Dissolve_management(fc, output_path, fields_interesse)
+    
+    if filename == 'Rodovia_Estadual_DNIT':
+        arcpy.analysis.PairwiseBuffer(lt_inteira, os.path.join(junkspace, 'lt_buffer_DNIT1'), '60000 Meters')
+        pw_clip = arcpy.analysis.PairwiseClip(fc, os.path.join(junkspace, 'lt_buffer_DNIT1'),  os.path.join(junkspace, 'pw_clip_DNIT1'))
+        output = arcpy.analysis.PairwiseDissolve(pw_clip, output_path, fields_interesse)
+    elif filename == 'Rodovia_Federal_DNIT':
+        arcpy.analysis.PairwiseBuffer(lt_inteira, os.path.join(junkspace, 'lt_buffer_DNIT2'), '60000 Meters')
+        pw_clip = arcpy.analysis.PairwiseClip(fc, os.path.join(junkspace, 'lt_buffer_DNIT2'), os.path.join(junkspace, 'pw_clip_DNIT2'))
+        output = arcpy.analysis.PairwiseDissolve(pw_clip, output_path, fields_interesse)
+    else:
+        output = arcpy.analysis.PairwiseDissolve(fc, output_path, fields_interesse)
 
     return output, fields_interesse
 
@@ -500,7 +507,7 @@ def fields(fc):
         fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Extensao','Vertices','Paralelism']
     elif filename == 'LT_Planejada_EPE_2023':
         fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Extensao','Vertices','Paralelism']
-    elif filename == 'Municipios_2022_IBGE':
+    elif filename == 'Municipios_IBGE_2022':
         fields_to_keep = dissolve(fc)[1]+['UF','Extensao','Area','Vertices']
     elif filename == 'Ocorrencias_Fossiliferas_CPRM':
         fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
@@ -587,12 +594,12 @@ def ltxfeature(fc, lt):
                 arcpy.CalculateField_management(output, 'Extensao', expression_proj, 'PYTHON')
     elif "Vertices" not in fields(fc):
         if arcpy.Describe(fc).shapeType == 'Polyline' or arcpy.Describe(fc).shapeType == 'PolylineM' or arcpy.Describe(fc).shapeType == 'PolylineZ':
-            lt=arcpy.management.Dissolve(in_features=lt, out_feature_class=os.path.join(junkspace,'dissolved_lt'))
+            lt=arcpy.analysis.PairwiseDissolve(in_features=lt, out_feature_class=os.path.join(junkspace,'dissolved_lt'))
             output = arcpy.analysis.Intersect(in_features=[lt, dissolved_fc], out_feature_class=os.path.join(gdb_quantitativo,'LT_x_'+filename), output_type='POINT')
             arcpy.CalculateField_management(output, 'Eixo_X', '!shape.firstPoint.X!', 'PYTHON')
             arcpy.CalculateField_management(output, 'Eixo_Y', '!shape.firstPoint.Y!', 'PYTHON')
         elif arcpy.Describe(fc).shapeType == 'Polygon'or arcpy.Describe(fc).shapeType == 'PolygonM' or arcpy.Describe(fc).shapeType == 'PolygonZ':
-            lt=arcpy.management.Dissolve(in_features=lt, out_feature_class=os.path.join(junkspace,'dissolved_lt'))
+            lt=arcpy.analysis.PairwiseDissolve(in_features=lt, out_feature_class=os.path.join(junkspace,'dissolved_lt'))
             output = arcpy.analysis.Intersect(in_features=[lt, dissolved_fc], out_feature_class=os.path.join(gdb_quantitativo,'LT_x_'+filename), output_type='LINE')
             arcpy.AddField_management(output, 'Area', 'FLOAT')
             if geodesic == 'true':
@@ -621,7 +628,7 @@ def fxinteressexfeature(fc, fx_interesse):
                 arcpy.CalculateField_management(output, 'Area', expression_proj_area, 'PYTHON')
     elif "Vertices" not in fields(fc):
         if arcpy.Describe(fc).shapeType == 'Polyline' or arcpy.Describe(fc).shapeType == 'PolylineM' or arcpy.Describe(fc).shapeType == 'PolylineZ':
-            fx_interesse=arcpy.management.Dissolve(in_features=fx_interesse, out_feature_class=os.path.join(junkspace,'dissolved_fx'))
+            fx_interesse=arcpy.analysis.PairwiseDissolve(in_features=fx_interesse, out_feature_class=os.path.join(junkspace,'dissolved_fx'))
             output = arcpy.Intersect_analysis([fx_interesse, dissolved_fc], os.path.join(gdb_quantitativo,'FxInteresse_x_'+filename))
             arcpy.AddField_management(output, 'Extensao', 'FLOAT')
             if geodesic == 'true':
@@ -629,7 +636,7 @@ def fxinteressexfeature(fc, fx_interesse):
             else:
                 arcpy.CalculateField_management(output, 'Extensao', expression_proj_len, 'PYTHON')
         elif arcpy.Describe(fc).shapeType == 'Polygon' or arcpy.Describe(fc).shapeType == 'PolygonM' or arcpy.Describe(fc).shapeType == 'PolygonZ':
-            fx_interesse=arcpy.management.Dissolve(in_features=fx_interesse, out_feature_class=os.path.join(junkspace,'dissolved_fx'))
+            fx_interesse=arcpy.analysis.PairwiseDissolve(in_features=fx_interesse, out_feature_class=os.path.join(junkspace,'dissolved_fx'))
             output = arcpy.Intersect_analysis([fx_interesse, dissolved_fc], os.path.join(gdb_quantitativo,'FxInteresse_x_'+filename))
             arcpy.AddField_management(output, 'Area', 'FLOAT')
             if geodesic == 'true':
@@ -658,25 +665,87 @@ def ltnearfeature(fc,buffer,lt):
     arcpy.management.CalculateField(in_table=output, field='OBS', expression='neardist(!NEAR_DIST!)', code_block=expression)
 
 def tradutor(excel):
+    dicionario = {
+    'nm_adt_adu': 'Nome da adutora',
+    'adt_status': 'Status',
+    'adt_uf': 'UF da adutora',
+    'Codigo_OAC': 'Código OAC',
+    'CIAD': 'CIAD',
+    'Denominaca': 'Denominação',
+    'NOME_EOL': 'Nome',
+    'DEN_AEG': 'Denominação',
+    'POT_MW': 'Potência (mW)',
+    'CEG': 'CEG',
+    'OPERACAO': 'Operação',
+    'Import_bio': 'Importância biológica',
+    'Prior_acao': 'Prioridade da ação',
+    'COD_Area': 'Código da área',
+    'Nome_area': 'Nome da área',
+    'NOME': 'Nome',
+    'ImportBio': 'Importância biológica',
+    'Prioridade': 'Prioridade',
+    'COD_area': 'Código da área',
+    'NOME_AP': 'Nome da APCB',
+    'IMP': 'Importância',
+    'PRIO': 'Prioridade',
+    'nome_base': 'Nome da base',
+    'munic': 'Município',
+    'razao_soci': 'Razão social',
+    'Bioma': 'Bioma',
+    'nome_bacia': 'Nome da bacia',
+    'nomenclatu': 'Nomenclatura',
+    'nome_setor': 'Nome do setor',
+    'Caverna': 'Caverna',
+    'Municipio': 'Município',
+    'Localidade': 'Localidade',
+    'tip_situac': 'Tipo de situação',
+    'bitola': 'Bitola',
+    'Distrib': 'Distribuição',
+    'Nome_Dut_1': 'Nome',
+    'Categoria': 'Categoria',
+    'nm_unidade': 'Nome da unidade',
+    'HID_NM': 'Nome da hidrovia',
+    'HID_DS_CUR': 'Descrição',
+    'Nome_1': 'Nome',
+    'NM_LOCALID': 'Nome da localidade',
+    'Tensao': 'Tensão',
+    'Ano_opera': 'Ano de operação',
+    'NM_MUNICIP': 'Município',
+    'SIGLA_UF': 'Sigla UF',
+    'LOCALIDADE': 'Localidade',
+    'Nome_Duto': 'Nome do duto',
+    'NOME_ter': 'Nome',
+    'GRAU_DE_PO': 'Grau de potencialidade',
+    'CLASSE': 'Classe',
+    'Tipo_Trech': 'Tipo de trecho',
+    'Unidade_Fe': 'UF da rodovia',
+    'Codigo_Rod': 'Código da rodovia',
+    'Nome_Tipo': 'Nome',
+    'Codigo_BR': 'Código da BR',
+    'nome': 'Nome',
+    'Identifica': 'Identificação',
+    'nm_comunid': 'Nome da comunidade',
+    'nm_municip': 'Município',
+    'nr_process': 'Número do processo',
+    'fase': 'Fase',
+    'responsave': 'Responsável',
+    'terrai_nom': 'Nome da Terra Indígena',
+    'etnia_nome': 'Nome da etnia',
+    'Extensao' : 'Extensão (km)',
+    'Area' : 'Área (ha)',
+    'Eixo_X' : 'Eixo X',
+    'Eixo_Y' : 'Eixo Y',
+    'Paralelism' : 'Paralelismo (Metros)',
+    'Distancia' : 'Distância (km)',
+    'Vertices' : 'Vértices',
+    'OBS' : 'Observação',
+    'identifica' : 'Identificação'}
+
     for row in excel.iter_rows():
         for cell in row:
-            if cell.value == 'Extensao':
-                cell.value = 'Extensão (km)'
-            if cell.value == 'Area':
-                cell.value = 'Área (ha)'
-            if cell.value == 'Eixo_X':
-                cell.value = 'Eixo X'
-            if cell.value == 'Eixo_Y':
-                cell.value = 'Eixo Y'
-            if cell.value == 'Paralelism':
-                cell.value = 'Paralelismo (Metros)'
-            if cell.value == 'Distancia':
-                cell.value = 'Distância (km)'
-            if cell.value == 'Vertices':
-                cell.value = 'Vértices'
-            if cell.value == 'OBS':
-                cell.value = 'Observação'
-            
+            if cell.value in dicionario.keys():
+                cell.value = dicionario[cell.value]
+                
 
 def toexcel(fc, related_field):
     campos_fc = [campo.name for campo in arcpy.ListFields(fc)]
@@ -755,10 +824,16 @@ def toexcel(fc, related_field):
             sheet['A1'] = fr'Relação de Distância do tema "{os.path.basename(fc).split("_x_")[1].replace("_"," ")}" com a LT - Raio de 10km'
     elif os.path.basename(fc).split('_x_')[0] == 'LT':
         sheet.insert_rows(1)
-        sheet['A1'] = fr'Extensão/Coordenada interceptada pelo tema "{os.path.basename(fc).split("_x_")[1].replace("_"," ")}" na Linha de Transmissão'
+        if arcpy.Describe(fc).shapeType == 'Polyline' or arcpy.Describe(fc).shapeType == 'PolylineM' or arcpy.Describe(fc).shapeType == 'PolylineZ':
+            sheet['A1'] = fr'Extensão interceptada pelo tema "{os.path.basename(fc).split("_x_")[1].replace("_"," ")}" na Linha de Transmissão'
+        elif arcpy.Describe(fc).shapeType == 'Point':
+            sheet['A1'] = fr'Coordenadas do ponto de interceptação do tema "{os.path.basename(fc).split("_x_")[1].replace("_"," ")}" na Linha de Transmissão'
     elif os.path.basename(fc).split('_x_')[0] == 'FxInteresse':
         sheet.insert_rows(1)
-        sheet['A1'] = fr' Extensão/Área interceptada pelo tema "{os.path.basename(fc).split("_x_")[1].replace("_"," ")}" na Faixa de Interesse'
+        if arcpy.Describe(fc).shapeType == 'Polyline' or arcpy.Describe(fc).shapeType == 'PolylineM' or arcpy.Describe(fc).shapeType == 'PolylineZ':
+            sheet['A1'] = fr' Extensão interceptada pelo tema "{os.path.basename(fc).split("_x_")[1].replace("_"," ")}" na Faixa de Interesse'
+        elif arcpy.Describe(fc).shapeType == 'Polygon' or arcpy.Describe(fc).shapeType == 'PolygonM' or arcpy.Describe(fc).shapeType == 'PolygonZ':
+            sheet['A1'] = fr'Área interceptada pelo tema "{os.path.basename(fc).split("_x_")[1].replace("_"," ")}" na Faixa de Interesse'
     elif os.path.basename(fc).split('_x_')[0] == 'Paralelismo':
         sheet.insert_rows(1)
         sheet['A1'] = fr'Relação de Paralelismo do tema "{os.path.basename(fc).split("_x_")[1].replace("_"," ")}" com a LT - Foi considerado paralelismo as linhas dentro da Faixa de Interesse'	
@@ -837,11 +912,14 @@ def parallel(fc,lt,fx_interesse):
     arcpy.CalculateField_management('split_lines_layer', 'Paralelism', '1', 'PYTHON')
     arcpy.DeleteField_management('split_lines_layer', 'Extensao')
     identity_output = arcpy.analysis.Identity('split_lines_layer', fx_interesse, os.path.join(junkspace, 'split_lines_identity'))
-    dissolve_output = arcpy.Dissolve_management(identity_output, os.path.join(junkspace, 'output_dissolve'),dissolve(os.path.basename(fc))[1]+['Paralelism','Vertices'])
+    dissolve_output = arcpy.analysis.PairwiseDissolve(identity_output, os.path.join(junkspace, 'output_dissolve'),dissolve(os.path.basename(fc))[1]+['Paralelism','Vertices'])
     dissolve_output_layer = arcpy.MakeFeatureLayer_management(dissolve_output, 'dissolve_output_layer')
     lt_layer = arcpy.MakeFeatureLayer_management(lt, 'lt_layer')
     arcpy.SelectLayerByLocation_management(dissolve_output_layer, 'INTERSECT', lt_layer,'','NEW_SELECTION','INVERT')
-    arcpy.CalculateField_management(dissolve_output_layer, 'Paralelism', '!shape.length@meters!', 'PYTHON')
+    if geodesic == 'true':
+        arcpy.CalculateField_management(dissolve_output_layer, 'Paralelism', '!SHAPE.geodesicLength@meters!', 'PYTHON')
+    else:
+        arcpy.CalculateField_management(dissolve_output_layer, 'Paralelism', '!shape.length@meters!', 'PYTHON')
     output_lines_final = os.path.join(junkspace,fr'Paralelismo_{os.path.basename(fc)}')
     arcpy.CopyFeatures_management(dissolve_output_layer, output_lines_final)
     arcpy.conversion.FeatureClassToFeatureClass(output_lines_final, os.path.join(gdb_path,'Quantitativo'), fr'Paralelismo_x_{os.path.basename(fc)}')
@@ -858,9 +936,9 @@ if temas_extra == '':
             #faz um add mensage com o andamento do processo
             arcpy.AddMessage(f'Processando {tema} ({temas.index(tema)+1} de {count})')
             # Check if the feature class is "Unidade de Conservação"
-            if tema == "Unidade de Conservação":
+            if os.path.basename(tema) == "Unidades_de_Conservacao_MMA":
                 ltnearfeature(os.path.join(gdb_path, 'Temas', tema), '50000 Meters', lt)
-            elif 'Distancia' in fields(tema):
+            elif 'Distancia' in fields(tema) and os.path.basename(tema) != "Unidades_de_Conservacao_MMA":
                 ltnearfeature(os.path.join(gdb_path, 'Temas', tema), '10000 Meters', lt)
             # Call ltxfeature and fxinteressexfeature functions
             ltxfeature(os.path.join(gdb_path, 'Temas', tema), lt)
