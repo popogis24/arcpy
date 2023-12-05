@@ -820,15 +820,15 @@ def toexcel(fc, related_field):
     if os.path.basename(fc).split('_x_')[0] == 'LT_Near':
         sheet.insert_rows(1)
         if os.path.basename(fc).split("_x_")[1] == 'Unidade de Conservação':
-            sheet['A1'] = fr'Relação de Distância do tema "{os.path.basename(fc).split("_x_")[1].replace("_"," ")}" com a LT - Raio de 50km'
+            sheet['A1'] = fr'Relação de distância do tema "{os.path.basename(fc).split("_x_")[1].replace("_"," ")}" com a LT - Raio de 50km'
         else:
-            sheet['A1'] = fr'Relação de Distância do tema "{os.path.basename(fc).split("_x_")[1].replace("_"," ")}" com a LT - Raio de 10km'
+            sheet['A1'] = fr'Relação de distância do tema "{os.path.basename(fc).split("_x_")[1].replace("_"," ")}" com a LT - Raio de 10km'
     elif os.path.basename(fc).split('_x_')[0] == 'LT':
         sheet.insert_rows(1)
         if arcpy.Describe(fc).shapeType == 'Polyline' or arcpy.Describe(fc).shapeType == 'PolylineM' or arcpy.Describe(fc).shapeType == 'PolylineZ':
             sheet['A1'] = fr'Extensão interceptada pelo tema "{os.path.basename(fc).split("_x_")[1].replace("_"," ")}" na Linha de Transmissão'
-        elif arcpy.Describe(fc).shapeType == 'Point':
-            sheet['A1'] = fr'Coordenadas do ponto de interceptação do tema "{os.path.basename(fc).split("_x_")[1].replace("_"," ")}" na Linha de Transmissão'
+        elif arcpy.Describe(fc).shapeType == 'Multipoint' or arcpy.Describe(fc).shapeType == 'Point':
+            sheet['A1'] = fr'Coordenadas dos pontos de interceptação do tema "{os.path.basename(fc).split("_x_")[1].replace("_"," ")}" na Linha de Transmissão'
     elif os.path.basename(fc).split('_x_')[0] == 'FxInteresse':
         sheet.insert_rows(1)
         if arcpy.Describe(fc).shapeType == 'Polyline' or arcpy.Describe(fc).shapeType == 'PolylineM' or arcpy.Describe(fc).shapeType == 'PolylineZ':
