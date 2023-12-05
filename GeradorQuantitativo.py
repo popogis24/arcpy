@@ -739,7 +739,8 @@ def tradutor(excel):
     'Distancia' : 'Distância (km)',
     'Vertices' : 'Vértices',
     'OBS' : 'Observação',
-    'identifica' : 'Identificação'}
+    'identifica' : 'Identificação',
+    'legenda' : 'Legenda'}
 
     for row in excel.iter_rows():
         for cell in row:
