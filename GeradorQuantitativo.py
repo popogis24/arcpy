@@ -618,31 +618,46 @@ def fxinteressexfeature(fc, fx_interesse):
         if arcpy.Describe(fc).shapeType == 'Polyline' or arcpy.Describe(fc).shapeType == 'PolylineM' or arcpy.Describe(fc).shapeType == 'PolylineZ':
             output = arcpy.Intersect_analysis([fx_interesse, dissolved_fc], os.path.join(gdb_quantitativo,'FxInteresse_x_'+filename))
             arcpy.AddField_management(output, 'Extensao', 'FLOAT')
-            arcpy.CalculateField_management(output, 'Extensao', expression_proj_len, 'PYTHON')
+            if geodesic == 'true':
+                arcpy.AddMessage('Realizando cálculo de extensão geodésica')
+                arcpy.CalculateField_management(output, 'Extensao', expression_geo_len, 'PYTHON')
+                arcpy.CalculateField_management(output, 'Extensao', "round(!Extensao!, 3)", 'PYTHON')
+            else:
+                arcpy.CalculateField_management(output, 'Extensao', expression_proj_len, 'PYTHON')
+                arcpy.CalculateField_management(output, 'Extensao', "round(!Extensao!, 3)", 'PYTHON')
         elif arcpy.Describe(fc).shapeType == 'Polygon' or arcpy.Describe(fc).shapeType == 'PolygonM' or arcpy.Describe(fc).shapeType == 'PolygonZ':
             output = arcpy.Intersect_analysis([fx_interesse, dissolved_fc], os.path.join(gdb_quantitativo,'FxInteresse_x_'+filename))
             arcpy.AddField_management(output, 'Area', 'FLOAT')
             if geodesic == 'true':
+                arcpy.AddMessage('Realizando cálculo de área geodésica')
                 arcpy.CalculateField_management(output, 'Area', expression_geo_area, 'PYTHON')
+                arcpy.CalculateField_management(output, 'Area', "round(!Area!, 3)", 'PYTHON')
             else:
                 arcpy.CalculateField_management(output, 'Area', expression_proj_area, 'PYTHON')
+                arcpy.CalculateField_management(output, 'Area', "round(!Area!, 3)", 'PYTHON')
     elif "Vertices" not in fields(fc):
         if arcpy.Describe(fc).shapeType == 'Polyline' or arcpy.Describe(fc).shapeType == 'PolylineM' or arcpy.Describe(fc).shapeType == 'PolylineZ':
             fx_interesse=arcpy.analysis.PairwiseDissolve(in_features=fx_interesse, out_feature_class=os.path.join(junkspace,'dissolved_fx'))
             output = arcpy.Intersect_analysis([fx_interesse, dissolved_fc], os.path.join(gdb_quantitativo,'FxInteresse_x_'+filename))
             arcpy.AddField_management(output, 'Extensao', 'FLOAT')
             if geodesic == 'true':
+                arcpy.AddMessage('Realizando cálculo de extensão geodésica')
                 arcpy.CalculateField_management(output, 'Extensao', expression_geo_len, 'PYTHON')
+                arcpy.CalculateField_management(output, 'Extensao', "round(!Extensao!, 3)", 'PYTHON')
             else:
                 arcpy.CalculateField_management(output, 'Extensao', expression_proj_len, 'PYTHON')
+                arcpy.CalculateField_management(output, 'Extensao', "round(!Extensao!, 3)", 'PYTHON')
         elif arcpy.Describe(fc).shapeType == 'Polygon' or arcpy.Describe(fc).shapeType == 'PolygonM' or arcpy.Describe(fc).shapeType == 'PolygonZ':
             fx_interesse=arcpy.analysis.PairwiseDissolve(in_features=fx_interesse, out_feature_class=os.path.join(junkspace,'dissolved_fx'))
             output = arcpy.Intersect_analysis([fx_interesse, dissolved_fc], os.path.join(gdb_quantitativo,'FxInteresse_x_'+filename))
             arcpy.AddField_management(output, 'Area', 'FLOAT')
             if geodesic == 'true':
+                arcpy.AddMessage('Realizando cálculo de área geodésica')
                 arcpy.CalculateField_management(output, 'Area', expression_geo_area, 'PYTHON')
+                arcpy.CalculateField_management(output, 'Area', "round(!Area!, 3)", 'PYTHON')
             else:
                 arcpy.CalculateField_management(output, 'Area', expression_proj_area, 'PYTHON')
+                arcpy.CalculateField_management(output, 'Area', "round(!Area!, 3)", 'PYTHON')
 
 def ltnearfeature(fc,buffer,lt):
     dissolved_fc = dissolve(fc)[0]
@@ -650,7 +665,7 @@ def ltnearfeature(fc,buffer,lt):
         arcpy.analysis.Near(in_features = dissolved_fc, near_features = lt, search_radius = buffer, method = 'GEODESIC')
     else:
         arcpy.analysis.Near(in_features = dissolved_fc, near_features = lt, search_radius = buffer)
-    expression = "round(!NEAR_DIST! / 1000.0, 4)"
+    expression = "round(!NEAR_DIST! / 1000.0, 3)"
     arcpy.CalculateField_management(dissolved_fc, 'Distancia', expression, "PYTHON")
     joinedfc = arcpy.management.JoinField(in_data=dissolved_fc, in_field='NEAR_FID', join_table=lt, join_field='OBJECTID')
     #arcpy.CalculateField_management(joinedfc, 'OBS', expression, "PYTHON")
@@ -659,7 +674,7 @@ def ltnearfeature(fc,buffer,lt):
     arcpy.AddField_management(output, 'OBS', 'TEXT')
     expression = """def neardist(x):
         if x == 0:
-            return 'Tema Sobrepõe a LT (Verificar aba de sobreposição)'
+            return 'Tema Sobrepõe a LT (Verificar planilha de sobreposição)'
         else:
             return ' '"""
     arcpy.management.CalculateField(in_table=output, field='OBS', expression='neardist(!NEAR_DIST!)', code_block=expression)
@@ -740,7 +755,12 @@ def tradutor(excel):
     'Vertices' : 'Vértices',
     'OBS' : 'Observação',
     'identifica' : 'Identificação',
-    'legenda' : 'Legenda'}
+    'legenda' : 'Legenda',
+    'NOME_UC1' : 'Nome da UC',
+    'GRUPO4' : 'Grupo',
+    'CATEGORI3' : 'Categoria',
+    'ESFERA5' : 'Esfera',
+    'ANO_CRIA6' : 'Ano de criação'}
 
     for row in excel.iter_rows():
         for cell in row:
