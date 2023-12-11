@@ -22,7 +22,7 @@ atualizar_vao = arcpy.GetParameterAsText(3)
 junkspace = arcpy.GetParameterAsText(10)
 geodesic = arcpy.GetParameterAsText(1)
 fields_tema_extra = arcpy.GetParameterAsText(12)
-divisao_estadual = r'C:\Users\anderson.souza\Downloads\BR_UF_2022\BR_UF_2022.shp'
+divisao_estadual = r'R:\14-Ferramentas_GISCARUSO\Script_Quantitativo\Divisao_Estadual_NAO_APAGAR\BR_UF_2022.shp'
 arcpy.env.workspace = gdb_path
 feature_datasets = arcpy.ListDatasets()
 
@@ -40,6 +40,8 @@ if os.listdir(junkspace) != []:
 
 def criavao(shape_lt, fx_interesse,vert_inicial):
     # Split at Vertices
+    arcpy.AddMessage('Criando Vão de LT e Faixa de Interesse segmentadas...')
+    arcpy.AddMessage('(...)')
     output_split = r'in_memory\"SplitVertices"'
     arcpy.SplitLine_management(shape_lt, output_split)
 
@@ -70,7 +72,10 @@ def criavao(shape_lt, fx_interesse,vert_inicial):
             else:
                 row[1] = f"V{sequencia:02d}-V{sequencia + 1:02d}"
             update_cursor.updateRow(row)
-
+    arcpy.AddMessage('Você tem certeza que a linha está orientada para a direção correta? Isso é importante pra não confundirmos os vértices.')
+    arcpy.AddMessage('(...)')
+    arcpy.AddMessage('Caso não esteja, é só cancelar a ferramenta e inverter a linha. Existe uma ferramenta boa pra isso no ArcGIS Pro, se chama "Flip Line".')
+    arcpy.AddMessage('(...)')
     # Salvar a feature class no geodatabase de saída com o nome "Diretriz_Gerada"
     try:
         output_diretriz_gerada = arcpy.CopyFeatures_management(output_split, os.path.join(gdb_path,'Dados_Caruso','Vao_LT'))
@@ -85,6 +90,7 @@ def criavao(shape_lt, fx_interesse,vert_inicial):
     # Caminho completo para o arquivo shapefile do buffer
     output_buffer_saida = r'in_memory\"faixa_servidao_buffer"'
 
+    arcpy.AddMessage('Só pra garantir mesmo, hehe.')
     # Salvar o buffer como shapefile
     arcpy.Buffer_analysis(output_diretriz_gerada, output_buffer_saida, fs_distancia)
     spatial_reference = arcpy.Describe(shape_lt).spatialReference
@@ -123,6 +129,8 @@ def criavao(shape_lt, fx_interesse,vert_inicial):
 
     # Adicionar novo campo "Circuito" na feature class "no_over"
     if circuito_duplo == 'true':
+        arcpy.AddMessage('Ví aqui que você quer segmentar a LT em circuitos duplos. Lembre-se que isso só funciona se a sua linha possuir 2 feições e uma coluna chamada "Circuito" com os valores "C1" e "C2".')
+        arcpy.AddMessage('(...)')
         campo_circuito = 'Circuito'
         arcpy.management.AddField(no_over, campo_circuito, 'TEXT', field_length=50)
 
@@ -228,7 +236,7 @@ def lista_dados_referenciais():
         'Bases_de_GLP_EPE',
         'Biomas_IBGE_2019_250000',
         'Blocos_Disponiveis_OPC_1009_ANP',
-        'Cavidades_CANIE_19122022',
+        'Cavidades_CANIE_2022',
         'Centrais_Geradoras_Hidrelétricas_CGH_ANEEL',
         'CGH_Base_Existente_EPE',
         'CGH_Expansao_Planejada_EPE',
@@ -455,7 +463,7 @@ def fields(fc):
     filename = os.path.basename(fc)
     fields_to_keep = []
     if filename == 'Adutoras_SNIRH_ANA_2021':
-        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
+        fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y','Paralelismo']
     elif filename == 'Aerodromos_ANAC_2022':
         fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
     elif filename == 'Aerogeradores_ANEEL_2023':
@@ -676,7 +684,6 @@ def fxinteressexfeature(fc, fx_interesse):
             else:
                 arcpy.CalculateField_management(output, 'Area', expression_proj_area, 'PYTHON')
 
-
 def ltnearfeature(fc,buffer,lt):
     dissolved_fc = dissolve(fc)[0]
     if geodesic == 'true':
@@ -778,7 +785,9 @@ def tradutor(excel):
     'GRUPO4' : 'Grupo',
     'CATEGORI3' : 'Categoria',
     'ESFERA5' : 'Esfera',
-    'ANO_CRIA6' : 'Ano de criação'}
+    'ANO_CRIA6' : 'Ano de criação',
+    'ImportBio_' : 'Importância biológica'
+    }
 
     for row in excel.iter_rows():
         for cell in row:
@@ -893,15 +902,20 @@ def toexcel(fc, related_field):
 
 
 if atualizar_vao == 'true':
+    arcpy.AddMessage('Atualizando Vão de LT')
     #deleta todos os feature classes na pasta dados caruso
     arcpy.env.workspace = os.path.join(gdb_path, 'Dados_Caruso')
-    arcpy.management.Delete(os.path.join(gdb_path, 'Dados_Caruso','Vao_LT'))
-    arcpy.management.Delete(os.path.join(gdb_path, 'Dados_Caruso','Vao_FxInteresse'))
-    if circuito_duplo == 'false':
+    if arcpy.Exists(os.path.join(gdb_path, 'Dados_Caruso','Vao_LT')):
+        arcpy.management.Delete(os.path.join(gdb_path, 'Dados_Caruso','Vao_LT'))
+    if arcpy.Exists(os.path.join(gdb_path, 'Dados_Caruso','Vao_FxInteresse')):
+        arcpy.management.Delete(os.path.join(gdb_path, 'Dados_Caruso','Vao_FxInteresse'))
+    if circuito_duplo != 'true':
+        arcpy.AddMessage('Detectado linha de circuíto único')
         vao = criavao(lt_inteira, fx_interesse, vert_inicial)
         lt = vao[0]
         fx_interesse = vao[1]
     elif circuito_duplo == 'true':
+        arcpy.AddMessage('Detectado linha de circuíto duplo')
         path = os.path.join(gdb_path, 'Dados_Caruso')
         #lista as linhas no shape de lt que tem circuito 1 e 2
         lt_circuito1 = arcpy.management.SelectLayerByAttribute(in_layer_or_view=lt_inteira, selection_type='NEW_SELECTION', where_clause="Circuito = 'C1'")
@@ -938,6 +952,11 @@ else:
     fx_interesse = os.path.join(gdb_path, 'Dados_Caruso','Vao_FxInteresse')
 
 if atualizar == 'true':
+    arcpy.AddMessage('Você escolheu a opção de atualizar a base de dados.')
+    arcpy.AddMessage('(...)')
+    arcpy.AddMessage('Isso vai demorar um pouco, não se preocupe.')
+    arcpy.AddMessage('(...)')
+    arcpy.AddMessage('Pode usar o computador normalmente enquanto isso. Só não mexe no GDB que está rodando.')
     project(gdb_path, temas_extra)
 else:
     pass
