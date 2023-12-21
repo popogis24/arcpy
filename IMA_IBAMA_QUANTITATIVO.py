@@ -11,6 +11,7 @@ fields_tema = arcpy.GetParameterAsText(2)
 dataset_quantitativo = arcpy.GetParameterAsText(3)
 pasta_excel = arcpy.GetParameterAsText(4)
 junkspace = arcpy.GetParameterAsText(5)
+field_nome = arcpy.GetParameterAsText(6)
 
 list_acesso = acesso.split(';')
 arcpy.management.RepairGeometry(tema)
@@ -30,7 +31,7 @@ def fxinteressexfeature(acesso, tema):
     output = arcpy.analysis.PairwiseIntersect([acesso, tema_dissolved], os.path.join(junkspace, fr'Sobreposicao_x_{filename_tema_acesso}'))
     #feature class to feature class
     #dissolve pelo folderpath
-    fields_dissolve = ['FolderPath']+fields
+    fields_dissolve = [field_nome]+fields
     output_dissolved = arcpy.analysis.PairwiseDissolve(output, os.path.join(junkspace, fr'Sobreposicao_x_{filename_tema_acesso}_dissolved'), fields_dissolve)
     output = arcpy.FeatureClassToFeatureClass_conversion(output_dissolved, dataset_quantitativo, fr'Sobreposicao_x_{filename_tema_acesso}')
     if arcpy.Describe(tema).shapeType == 'Polyline':
@@ -113,12 +114,25 @@ prox = [fc for fc in fclist if fc.startswith('Proximidade') and fc.endswith(os.p
 sobr = [fc for fc in fclist if fc.startswith('Sobreposicao') and fc.endswith(os.path.basename(tema))]
 
 
-
 if arcpy.Describe(tema).shapeType == 'Point' or arcpy.Describe(tema).shapeType == 'Multipoint':
-    merge_prox = arcpy.Merge_management(prox, os.path.join(dataset_quantitativo, fr'Merge_Proximidade_x_{os.path.basename(tema)}'))
-    excel(merge_prox)
+
+    todissolve = [field_nome]+fields_tema.split(';')+['Distancia', 'OBS']
+    merge_prox = arcpy.Merge_management(prox, os.path.join(dataset_quantitativo, fr'Merge_Proximidade_x_{os.path.basename(tema)}_merged'))
+    dissolve_prox = arcpy.analysis.PairwiseDissolve(merge_prox, os.path.join(dataset_quantitativo, fr'Merge_Proximidade_x_{os.path.basename(tema)}'), todissolve)
+    excel(dissolve_prox)
+
 else:
-    merge_prox = arcpy.Merge_management(prox, os.path.join(dataset_quantitativo, fr'Merge_Proximidade_x_{os.path.basename(tema)}'))
-    merge_sobr = arcpy.Merge_management(sobr, os.path.join(dataset_quantitativo, fr'Merge_Sobreposicao_x_{os.path.basename(tema)}'))
-    excel(merge_prox)
-    excel(merge_sobr)
+    if arcpy.Describe(tema).shapeType == 'Polyline':
+        todissolve_sobr = [field_nome]+fields_tema.split(';')+['Extensao_km']
+    elif arcpy.Describe(tema).shapeType == 'Polygon':
+        todissolve_sobr = [field_nome]+fields_tema.split(';')+['Area_ha']
+
+    todissolve_prox = [field_nome]+fields_tema.split(';')+['Distancia','OBS']  
+    merge_prox = arcpy.Merge_management(prox, os.path.join(dataset_quantitativo, fr'Merge_Proximidade_x_{os.path.basename(tema)}_merged'))
+    merge_sobr = arcpy.Merge_management(sobr, os.path.join(dataset_quantitativo, fr'Merge_Sobreposicao_x_{os.path.basename(tema)}_merged'))
+    dissolve_prox = arcpy.analysis.PairwiseDissolve(merge_prox, os.path.join(dataset_quantitativo, fr'Merge_Proximidade_x_{os.path.basename(tema)}'), todissolve_prox)
+    dissolve_sobr = arcpy.analysis.PairwiseDissolve(merge_sobr, os.path.join(dataset_quantitativo, fr'Merge_Sobreposicao_x_{os.path.basename(tema)}'), todissolve_sobr)
+
+    excel(dissolve_prox)
+    excel(dissolve_sobr)
+
