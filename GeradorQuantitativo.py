@@ -22,9 +22,12 @@ atualizar_vao = arcpy.GetParameterAsText(3)
 junkspace = arcpy.GetParameterAsText(10)
 geodesic = arcpy.GetParameterAsText(1)
 fields_tema_extra = arcpy.GetParameterAsText(12)
+
 divisao_estadual = r'R:\14-Ferramentas_GISCARUSO\Script_Quantitativo\Divisao_Estadual_NAO_APAGAR\BR_UF_2022.shp'
 arcpy.env.workspace = gdb_path
 feature_datasets = arcpy.ListDatasets()
+
+arcpy.AddMessage('Gerador Automatico de Quantitativos - Versão 1.0')
 
 if 'Quantitativo' not in feature_datasets:
     arcpy.CreateFeatureDataset_management(gdb_path, 'Quantitativo', arcpy.Describe(lt_inteira).spatialReference)
@@ -36,12 +39,19 @@ if os.listdir(junkspace) != []:
     for file in os.listdir(junkspace):
         os.remove(os.path.join(junkspace, file))
 
+def error():
+    shptype = arcpy.Describe(lt_inteira).shapeType
+    if shptype != 'Polyline':
+        arcpy.AddError('A linha de transmissão deve ser do tipo "Linha"')
+        raise arcpy.ExecuteError
+    if circuito_duplo == 'true' and 'Circuito' not in [field.name for field in arcpy.ListFields(lt_inteira)]:
+        arcpy.AddError('Caso seja uma linha de circuito duplo, a linha de transmissão deve possuir uma coluna chamada "Circuito" e os valores devem ser "C1" e "C2"')
+        raise arcpy.ExecuteError
 
+error()
 
 def criavao(shape_lt, fx_interesse,vert_inicial):
     # Split at Vertices
-    arcpy.AddMessage('Criando Vão de LT e Faixa de Interesse segmentadas...')
-    arcpy.AddMessage('(...)')
     output_split = r'in_memory\"SplitVertices"'
     arcpy.SplitLine_management(shape_lt, output_split)
 
@@ -72,10 +82,7 @@ def criavao(shape_lt, fx_interesse,vert_inicial):
             else:
                 row[1] = f"V{sequencia:02d}-V{sequencia + 1:02d}"
             update_cursor.updateRow(row)
-    arcpy.AddMessage('Você tem certeza que a linha está orientada para a direção correta? Isso é importante pra não confundirmos os vértices.')
-    arcpy.AddMessage('(...)')
-    arcpy.AddMessage('Caso não esteja, é só cancelar a ferramenta e inverter a linha. Existe uma ferramenta boa pra isso no ArcGIS Pro, se chama "Flip Line".')
-    arcpy.AddMessage('(...)')
+
     # Salvar a feature class no geodatabase de saída com o nome "Diretriz_Gerada"
     try:
         output_diretriz_gerada = arcpy.CopyFeatures_management(output_split, os.path.join(gdb_path,'Dados_Caruso','Vao_LT'))
@@ -90,7 +97,7 @@ def criavao(shape_lt, fx_interesse,vert_inicial):
     # Caminho completo para o arquivo shapefile do buffer
     output_buffer_saida = r'in_memory\"faixa_servidao_buffer"'
 
-    arcpy.AddMessage('Só pra garantir mesmo, hehe.')
+    
     # Salvar o buffer como shapefile
     arcpy.Buffer_analysis(output_diretriz_gerada, output_buffer_saida, fs_distancia)
     spatial_reference = arcpy.Describe(shape_lt).spatialReference
@@ -129,8 +136,6 @@ def criavao(shape_lt, fx_interesse,vert_inicial):
 
     # Adicionar novo campo "Circuito" na feature class "no_over"
     if circuito_duplo == 'true':
-        arcpy.AddMessage('Ví aqui que você quer segmentar a LT em circuitos duplos. Lembre-se que isso só funciona se a sua linha possuir 2 feições e uma coluna chamada "Circuito" com os valores "C1" e "C2".')
-        arcpy.AddMessage('(...)')
         campo_circuito = 'Circuito'
         arcpy.management.AddField(no_over, campo_circuito, 'TEXT', field_length=50)
 
@@ -147,6 +152,7 @@ def criavao(shape_lt, fx_interesse,vert_inicial):
                             row_update[1] = circuito_lt
                             update_cursor.updateRow(row_update)
                             break
+
 
     sl_fx_serv = arcpy.management.SelectLayerByAttribute(in_layer_or_view=output_buffer_saida, selection_type='NEW_SELECTION', where_clause='Sequencial=0')
     feature_copiada = os.path.join(gdb_path,'Dados_Caruso','feature_copiada')
@@ -258,7 +264,7 @@ def lista_dados_referenciais():
         'LT_Planejada_EPE_2023',
         'Municipios_IBGE_2022',
         'Ocorrencias_Fossiliferas_CPRM',
-        'PCH_Base_Existente_EPE',
+        'PCH_Base_Existente_EPE_2023',
         'PCH_Expansao_Planejada_EPE_2023',
         'Pedologia_IBGE',
         'Pequenas_Centrais_Hidrelétricas_PCH_ANEEL',
@@ -272,7 +278,7 @@ def lista_dados_referenciais():
         'Rodovia_Federal_DNIT',
         'RPPNs_ICMBio',
         'Sitios_Arqueologicos_IPHAN',
-        'Subestações_Base_Existente_EPE_2023',
+        'Subestacoes_Base_Existente_EPE_2023',
         'Subestacoes_Expansao_Planejada_EPE_2023',
         'Terminais_de_Petroleo_e_Derivados_EPE',
         'Territorios_Quilombolas_INCRA_2023',
@@ -374,7 +380,7 @@ def dissolve(fc):
         fields_interesse = ['NM_MUN']
     elif filename == 'Ocorrencias_Fossiliferas_CPRM':
         fields_interesse = ['LOCALIDADE']
-    elif filename == 'PCH_Base_Existente_EPE':
+    elif filename == 'PCH_Base_Existente_EPE_2023':
         fields_interesse = ['NOME']
     elif filename == 'PCH_Expansao_Planejada_EPE_2023':
         fields_interesse = ['nome']
@@ -402,7 +408,7 @@ def dissolve(fc):
         fields_interesse = ['nome']
     elif filename == 'Sitios_Arqueologicos_IPHAN':
         fields_interesse = ['identifica']
-    elif filename == 'Subestações_Base_Existente_EPE_2023':
+    elif filename == 'Subestacoes_Base_Existente_EPE_2023':
         fields_interesse = ['Nome','Tensao','Ano_Opera']
     elif filename == 'Subestacoes_Expansao_Planejada_EPE_2023':
         fields_interesse = ['Nome','Tensao','Ano_Opera']
@@ -540,7 +546,7 @@ def fields(fc):
         fields_to_keep = dissolve(fc)[1]+['UF','Extensao','Area','Vertices']
     elif filename == 'Ocorrencias_Fossiliferas_CPRM':
         fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
-    elif filename == 'PCH_Base_Existente_EPE':
+    elif filename == 'PCH_Base_Existente_EPE_2023':
         fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
     elif filename == 'PCH_Expansao_Planejada_EPE_2023':
         fields_to_keep = dissolve(fc)[1]+['UF','Distancia','Vertices','Eixo_X','Eixo_Y']
@@ -706,22 +712,32 @@ def ltnearfeature(fc,buffer,lt):
 
 def tradutor(excel):
     dicionario = {
-    'nm_adt_adu': 'Nome da adutora',
+    'adt_nm_adu': 'Nome da adutora',
     'adt_status': 'Status',
     'adt_uf': 'UF da adutora',
+    'PROCESSO': 'Processo',
+    'ANO': 'Ano',
+    'FASE': 'Fase',
+    'SUBS': 'Substância',
+    'AREA_HA': 'Área do processo (ha)',
+    'DSProcesso': 'Descrição do processo',
     'Codigo_OAC': 'Código OAC',
+    'Comparacao': 'Comparação',
     'CIAD': 'CIAD',
     'Denominaca': 'Denominação',
     'NOME_EOL': 'Nome',
     'DEN_AEG': 'Denominação',
-    'POT_MW': 'Potência (mW)',
+    'POT_MW': 'Potência (mW)', 
     'CEG': 'CEG',
+    'nome_proje': 'Nome do projeto',
     'OPERACAO': 'Operação',
     'Import_bio': 'Importância biológica',
     'Prior_acao': 'Prioridade da ação',
     'COD_Area': 'Código da área',
     'Nome_area': 'Nome da área',
     'NOME': 'Nome',
+    'municipio_': 'Município',
+    'num_familia': 'Número de famílias',
     'ImportBio': 'Importância biológica',
     'Prioridade': 'Prioridade',
     'COD_area': 'Código da área',
@@ -793,7 +809,6 @@ def tradutor(excel):
         for cell in row:
             if cell.value in dicionario.keys():
                 cell.value = dicionario[cell.value]
-                
 
 def toexcel(fc, related_field):
     campos_fc = [campo.name for campo in arcpy.ListFields(fc)]
@@ -910,12 +925,23 @@ if atualizar_vao == 'true':
     if arcpy.Exists(os.path.join(gdb_path, 'Dados_Caruso','Vao_FxInteresse')):
         arcpy.management.Delete(os.path.join(gdb_path, 'Dados_Caruso','Vao_FxInteresse'))
     if circuito_duplo != 'true':
-        arcpy.AddMessage('Detectado linha de circuíto único')
+        contagem = arcpy.management.GetCount(lt_inteira)
+        if str(contagem) != '1':
+            arcpy.AddError(fr'Não foi encontrado 1 circuito. A linha que você colocou possui {contagem} circuito(s).')
+            raise arcpy.ExecuteError
+        else:
+            arcpy.AddMessage('Detectado linha de circuíto único')
         vao = criavao(lt_inteira, fx_interesse, vert_inicial)
         lt = vao[0]
         fx_interesse = vao[1]
     elif circuito_duplo == 'true':
-        arcpy.AddMessage('Detectado linha de circuíto duplo')
+        contagem = arcpy.management.GetCount(lt_inteira)
+        if str(contagem) != '2':
+            arcpy.AddError(fr'Não foram encontrados 2 circuitos. A linha que você colocou possui {contagem} circuito(s).')
+            raise arcpy.ExecuteError
+        else:
+            arcpy.AddMessage('Detectado linha de circuíto duplo')
+
         path = os.path.join(gdb_path, 'Dados_Caruso')
         #lista as linhas no shape de lt que tem circuito 1 e 2
         lt_circuito1 = arcpy.management.SelectLayerByAttribute(in_layer_or_view=lt_inteira, selection_type='NEW_SELECTION', where_clause="Circuito = 'C1'")
@@ -1003,6 +1029,9 @@ if temas_extra == '':
             if 'Paralelism' in fields(tema):
                 parallel(os.path.join(gdb_path, 'Temas', tema), lt, fx_interesse)
 else:
+    if atualizar != 'true':
+        arcpy.AddWarning('Você escolheu a opção de não atualizar a base de dados. Saiba que caso você tenha adicionado algum tema que ainda não foi processado e não existe na pasta "Temas", ele não será processado.')
+        arcpy.AddWarning('Caso você esteja apenas rodando o script para gerar as planilhas de quantitativo, pode ignorar essa mensagem.')
     tema = os.path.basename(temas_extra)
     arcpy.env.workspace = os.path.join(gdb_path, 'Temas')
     if 'Distancia' in fields(temas_extra):
