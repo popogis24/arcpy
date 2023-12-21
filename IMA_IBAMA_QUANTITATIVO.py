@@ -15,7 +15,7 @@ field_nome = arcpy.GetParameterAsText(6)
 
 list_acesso = acesso.split(';')
 arcpy.management.RepairGeometry(tema)
-
+#teste
 def fxinteressexfeature(acesso, tema):
 
     filename_tema = os.path.basename(tema)
