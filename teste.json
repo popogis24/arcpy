@@ -1,0 +1,13 @@
+
+{
+    "results": [
+        {
+            "paramName": "Output_Zip_File",
+            "dataType": "GPDataFile",
+            "value": {
+                "url": "https://gisepeprd2.epe.gov.br/arcgis/rest/directories/arcgisoutput/Download_Dados_Webmap_EPE_GPServer/_ags_D
+        }
+    ],
+    "messages": []
+}
+
