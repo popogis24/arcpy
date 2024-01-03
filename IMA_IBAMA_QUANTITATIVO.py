@@ -53,19 +53,11 @@ def ltnearfeature(acesso,buffer,tema):
     expression = "round(!NEAR_DIST! / 1000.0, 3)"
     arcpy.CalculateField_management(tema_dissolved, 'Distancia', expression, "PYTHON")
     arcpy.management.JoinField(in_data=tema_dissolved, in_field='NEAR_FID', join_table=acesso, join_field='FID')
-    list = []
-    field = ["NEAR_DIST"]
-    with arcpy.da.SearchCursor (tema_dissolved, field) as cursor:
-        for row in cursor:
-            list.append(row[0])
-
-    list.sort()
-    pointMinClause = "NEAR_DIST = " + str(list[0])
-
-    selectfc = arcpy.management.SelectLayerByAttribute(in_layer_or_view=os.path.join(junkspace, fr'{filename_tema}_dissolved'), selection_type="NEW_SELECTION", where_clause=pointMinClause)
-
+    
+    expression = "NEAR_DIST = {}".format(min(list))
+    selectfc = arcpy.management.SelectLayerByAttribute(in_layer_or_view=os.path.join(junkspace, fr'{filename_tema}_dissolved'), selection_type="NEW_SELECTION", where_clause=expression)
     output1 = arcpy.CopyFeatures_management(selectfc, fr'{junkspace}\Proximidade_x_{filename_tema_acesso}')
-    #feature class to feature class
+
     
     output = arcpy.FeatureClassToFeatureClass_conversion(output1, dataset_quantitativo, fr'Proximidade_x_{filename_tema_acesso}')
     arcpy.AddMessage(output)

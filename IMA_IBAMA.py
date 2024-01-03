@@ -10,6 +10,7 @@ arcpy.env.workspace = junkspace
 arcpy.env.addOutputsToMap = False
 
 
+
 #split acessos
 acessos = acessos.split(";")
 app = arcpy.management.CopyFeatures(in_features=app, out_feature_class='app_ver')
