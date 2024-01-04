@@ -35,10 +35,12 @@ class Layer():
         mn.RepairGeometry(in_features=self.api_name)
 
     def make_backup_table(self):
+        backup_name = #chamar a função que vai gerar o nome do backup
         endereco_tabela_backup = os.path.join(self.schema_backup, self.insert_table_name)
         mn.CopyFeatures(in_features=self.api_name, out_feature_class=endereco_tabela_backup)
 
     def delete_content(self):
+        
         endereco_tabela = os.path.join(self.schema_integration, self.insert_table_name)
         mn.DeleteFeatures(in_features=endereco_tabela)
     
