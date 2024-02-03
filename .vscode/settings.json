@@ -1,0 +1,7 @@
+{
+    "workbench.view.alwaysShowHeaderActions": false,
+    "workbench.editor.centeredLayoutFixedWidth": false,
+    "workbench.editor.wrapTabs": false,
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.typeCheckingMode": "basic"
+}

@@ -22,6 +22,7 @@ atualizar_vao = arcpy.GetParameterAsText(3)
 junkspace = arcpy.GetParameterAsText(10)
 geodesic = arcpy.GetParameterAsText(1)
 fields_tema_extra = arcpy.GetParameterAsText(12)
+fx_interesse_extra = arcpy.GetParameterAsText(14)
 
 divisao_estadual = r'R:\14-Ferramentas_GISCARUSO\Script_Quantitativo\Divisao_Estadual_NAO_APAGAR\BR_UF_2022.shp'
 arcpy.env.workspace = gdb_path

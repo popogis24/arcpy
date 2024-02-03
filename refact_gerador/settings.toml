@@ -1,0 +1,7 @@
+[PATH]
+#full path to the folder where the data will be stored
+base = ".\\APITESTE"
+
+[IBGE_DATA]
+municipal_boundary = ""
+state_boundary = ""
